@@ -124,6 +124,15 @@ note above and `01_REQUIREMENTS.md` §4.3 [LOCKED]).
   (`02_ARCHITECTURE.md` §4) + `tools/ble_probe.py` desktop client.
 - Wiring/pinout doc + bring-up order in `firmware/docs/WIRING.md`.
 
+Simulation before hardware (no parts needed): `pio run -e sim` builds a
+desktop simulator (`firmware/src/sim/`) that runs the real `core/` logic
+against the ML window CSVs — including the real DAMOTO falls — and prints the
+BLE JSON. Wokwi (`firmware/wokwi.toml` + `diagram.json`) simulates the ESP32
++ sensors + serial. See `firmware/README.md` §"Do you need to buy hardware?".
+
+Panic-button behaviour: **decided** — same 10 s window + buzzer as a crash
+(`03_RULES.md` §1 rationale), `cfg::kPanicUsesCancelWindow = true`.
+
 **Still to do (needs physical hardware — the actual Phase 2 work):**
 - `pio run` / `pio test -e native` — first real compile; fix any NimBLE API
   drift against the resolved library version.
@@ -133,7 +142,6 @@ note above and `01_REQUIREMENTS.md` §4.3 [LOCKED]).
   crash-fusion → cancel-window → BLE path against `ble_probe.py`.
 - Tune `crash_fusion.cpp` thresholds on real ride/drop data; feed that data
   back to Phase 1.
-- Decide the panic-button behaviour question (`firmware/README.md`).
 - Package into a wearable form on a helmet shell (raise the BIS/ISI
   re-certification question from `06_GOVERNANCE.md` §6 here).
 

@@ -1,0 +1,11 @@
+# Wokwi ESP32 simulation.
+#   1. pio run -e esp32dev          (build the firmware)
+#   2. open this folder with the Wokwi VS Code extension, or upload
+#      wokwi.toml + diagram.json to wokwi.com, and press play
+#
+# Wokwi simulates the ESP32, GPIO, I2C and the MPU6050. BLE is only partially
+# modelled — use the desktop simulator (pio run -e sim) for the BLE contract.
+[wokwi]
+version = 1
+firmware = ".pio/build/esp32dev/firmware.bin"
+elf = ".pio/build/esp32dev/firmware.elf"

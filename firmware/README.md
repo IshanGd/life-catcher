@@ -22,9 +22,12 @@ firmware/
 │   │   ├── imu_mpu6050.*  piezo.h  fsr_wear.h
 │   │   ├── panic_button.h  cancel_button.h  button.h  buzzer.h
 │   ├── ble/gatt_server.* # NimBLE GATT server
+│   ├── sim/main.cpp      # desktop simulator: real core/ vs an IMU-window CSV
 │   └── main.cpp          # plumbing only — no rule logic here
 ├── test/                 # host (native) unit tests — no board needed
-└── tools/ble_probe.py    # desktop BLE client for bring-up
+├── tools/ble_probe.py    # desktop BLE client for bring-up
+├── wokwi.toml            # ESP32 simulation (Wokwi)
+└── diagram.json
 ```
 
 ## Build / flash / test
@@ -40,10 +43,72 @@ pio test -e native         # run all host unit tests
 pio test -e native -f test_sos_state_machine   # just the safety-critical one
 ```
 
-> Nothing in `firmware/` has been compiled in this repo's authoring
-> environment (no C++ toolchain here). `pio run` / `pio test` on your machine
-> is the first real compile — expect to fix a NimBLE API nit or two against
-> the exact library version PlatformIO resolves.
+## Do you need to buy hardware? Not yet.
+
+Three levels, cheapest first. You can get a long way before any parts arrive.
+
+### 1. Desktop simulator — runs the REAL `src/core/` logic, no board
+
+```bash
+pio run -e sim
+.pio/build/sim/program --csv ../ml/data/damoto_windows.csv --verbose
+.pio/build/sim/program --csv ../ml/data/synthetic/windows.csv --cancel-after 4
+```
+
+Replays IMU windows (from the ML pipeline CSVs — including the **real DAMOTO
+fall data**) through `ImuWindow → crash_fusion → SosStateMachine` and prints
+the exact BLE JSON the firmware would send. The piezo channel isn't in those
+CSVs so it's synthesised (`--piezo-threshold`, default 1.8 g). This is the
+best way to watch crash detection + the 10 s cancel window behave against
+real data. Source: `sim/main.cpp`.
+
+### 2. Wokwi — simulates the ESP32, pins, I²C sensors and serial
+
+Free browser / VS Code ESP32 simulator. Good for the Arduino layer: real
+`MPU6050` model, buttons, buzzer, serial monitor, `pio` build.
+`wokwi.toml` + `diagram.json` are in this folder — build with
+`pio run -e esp32dev`, then open `firmware/` with the Wokwi VS Code
+extension (Ctrl/Cmd-Shift-P → "Wokwi: Start Simulator"), or paste both files
+into a new project on wokwi.com. The two potentiometers stand in for the
+piezo (turn up = impact) and the FSR (turn up = helmet worn).
+Limitations: Wokwi's BLE is partial — you can see it advertise, but pairing a
+real phone is unreliable. Use the desktop sim (1) for the BLE contract and
+Wokwi for the sensor/pin wiring feel.
+
+### 3. Real hardware — ~₹1,200–1,800 of parts
+
+ESP32 DevKit, GY-521 (MPU6050), a piezo disc, an FSR (or a spare button to
+fake it), 2 tactile buttons, an active buzzer, a breadboard. Wiring in
+[`docs/WIRING.md`](docs/WIRING.md). This is the actual Phase 2 exit —
+simulation can't validate mounting, vibration, battery life, or BLE range.
+
+## First real compile — what "fix a NimBLE nit" means
+
+Nothing in `firmware/` has been compiled yet — the environment it was written
+in has no C/C++ compiler, so `pio run` / `pio test` on your machine is the
+first time a compiler sees it. The Python in `ml/` was actually run; this
+firmware was not.
+
+The one spot most likely to error is `src/ble/gatt_server.cpp`. The
+`NimBLE-Arduino` library **changed three callback function signatures**
+between v1.x and v2.x:
+
+| callback | v1.4.x (what this code uses) | v2.x |
+|---|---|---|
+| `NimBLEServerCallbacks::onConnect` | `onConnect(NimBLEServer*)` | `onConnect(NimBLEServer*, NimBLEConnInfo&)` |
+| `NimBLEServerCallbacks::onDisconnect` | `onDisconnect(NimBLEServer*)` | `onDisconnect(NimBLEServer*, NimBLEConnInfo&, int reason)` |
+| `NimBLECharacteristicCallbacks::onWrite` | `onWrite(NimBLECharacteristic*)` | `onWrite(NimBLECharacteristic*, NimBLEConnInfo&)` |
+
+`platformio.ini` pins `h2zero/NimBLE-Arduino@~1.4.3` with
+`espressif32@^6.7.0` — a known-good pair — so it **should compile clean**. If
+PlatformIO resolves something else and you get an
+`error: 'onConnect' marked 'override' but does not override`, either:
+- keep the pins as-is (recommended), or
+- if you deliberately move to NimBLE 2.x, add the `NimBLEConnInfo&` params to
+  those three overrides in `gatt_server.cpp` (the bodies don't change).
+
+Anything else that errors: paste the compiler output back and it's a quick
+mechanical fix — the logic is covered by the `native` tests.
 
 ## What's real vs. provisional
 
@@ -70,17 +135,9 @@ pio test -e native -f test_sos_state_machine   # just the safety-critical one
 - **No ignition control.** There is no such output pin or code path, and
   there must never be one.
 
-## Open decision for a human — panic button behaviour
+## Panic button behaviour — DECIDED
 
-Right now the panic button runs the **same** 10 s buzzer + cancel window as a
-crash (rule-compliant default). For a robbery/assault, a loud buzzer and a
-delay may be exactly wrong. Options to decide (do **not** change unilaterally
-— `03_RULES.md` §1 covers the cancel window):
-
-1. keep as-is (safe default, matches the locked crash behaviour);
-2. panic → **silent** countdown (no buzzer), same 10 s, cancel via a
-   double-press;
-3. panic → immediate silent dispatch, no window.
-
-`cfg::kPanicUsesCancelWindow` is the single hook; option 3 would need sign-off
-because it removes a confirm window.
+The panic button runs the **same** 10 s buzzer + cancel window as a crash
+(`cfg::kPanicUsesCancelWindow = true`). A silent / no-window variant for
+assault scenarios was considered and rejected — it would remove a confirm
+window (`03_RULES.md` §1). Revisit only with a human decision.

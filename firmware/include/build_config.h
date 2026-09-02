@@ -19,11 +19,11 @@ constexpr float  kImuWindowSeconds  = 2.0f;
 // below a human-confirmed value, or made skippable by any code path.
 constexpr uint32_t kSosCancelWindowMs = 10'000;
 
-// Applies to EVERY auto- or manually-triggered SOS (crash fusion AND panic
-// button). Whether the panic-button path should instead be silent / use a
-// different window for assault scenarios is an OPEN DESIGN DECISION for a
-// human to make — see firmware/README.md. Until then it uses this same
-// window and the buzzer, matching the locked crash-path behaviour.
+// DECIDED (2026-09): the panic button uses the SAME 10 s window + buzzer as a
+// crash, matching the locked crash-path behaviour. A silent / no-window
+// variant for assault scenarios was considered and rejected for now — it
+// would remove a confirm window (03_RULES.md §1). Revisit only with a human
+// decision.
 constexpr bool kPanicUsesCancelWindow = true;
 
 // --- BLE ---------------------------------------------------------------

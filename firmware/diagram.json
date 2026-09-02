@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "author": "smart-helmet",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-mpu6050", "id": "imu", "top": -120, "left": 200, "attrs": {} },
+    { "type": "wokwi-pushbutton", "id": "panic", "top": 100, "left": 210,
+      "attrs": { "color": "red", "label": "PANIC" } },
+    { "type": "wokwi-pushbutton", "id": "cancel", "top": 180, "left": 210,
+      "attrs": { "color": "green", "label": "CANCEL" } },
+    { "type": "wokwi-buzzer", "id": "bz", "top": 100, "left": 330, "attrs": { "volume": "0.1" } },
+    { "type": "wokwi-potentiometer", "id": "piezo", "top": -40, "left": -180,
+      "attrs": { "label": "PIEZO (impact)" } },
+    { "type": "wokwi-potentiometer", "id": "fsr", "top": 120, "left": -180,
+      "attrs": { "label": "FSR (wear)" } }
+  ],
+  "connections": [
+    [ "esp:3V3", "imu:VCC", "red", [] ],
+    [ "esp:GND.1", "imu:GND", "black", [] ],
+    [ "esp:21", "imu:SDA", "blue", [] ],
+    [ "esp:22", "imu:SCL", "yellow", [] ],
+
+    [ "esp:3V3", "piezo:VCC", "red", [] ],
+    [ "esp:GND.1", "piezo:GND", "black", [] ],
+    [ "esp:34", "piezo:SIG", "green", [] ],
+
+    [ "esp:3V3", "fsr:VCC", "red", [] ],
+    [ "esp:GND.1", "fsr:GND", "black", [] ],
+    [ "esp:35", "fsr:SIG", "green", [] ],
+
+    [ "esp:25", "panic:1.l", "purple", [] ],
+    [ "panic:2.l", "esp:GND.1", "black", [] ],
+    [ "esp:26", "cancel:1.l", "purple", [] ],
+    [ "cancel:2.l", "esp:GND.1", "black", [] ],
+
+    [ "esp:27", "bz:1", "orange", [] ],
+    [ "bz:2", "esp:GND.1", "black", [] ]
+  ],
+  "dependencies": {}
+}
