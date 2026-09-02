@@ -39,9 +39,15 @@ pio run                    # build for esp32dev
 pio run -t upload          # flash (board on USB)
 pio device monitor         # serial console @ 115200
 
-pio test -e native         # run all host unit tests
+pio test -e native         # run all host unit tests  -> 22/22 passing
 pio test -e native -f test_sos_state_machine   # just the safety-critical one
+pio run  -e sim            # build the desktop simulator (see below)
 ```
+
+The `native` and `sim` environments need a host C/C++ compiler on `PATH`. On
+Windows: `winget install BrechtSanders.WinLibs.POSIX.UCRT` (GCC), then open a
+**new** terminal so the PATH update takes effect. `pio test -e native` and
+`pio run -e sim` were last run green on GCC 16.1.0 (2026-09).
 
 ## Do you need to buy hardware? Not yet.
 
@@ -82,15 +88,15 @@ fake it), 2 tactile buttons, an active buzzer, a breadboard. Wiring in
 [`docs/WIRING.md`](docs/WIRING.md). This is the actual Phase 2 exit —
 simulation can't validate mounting, vibration, battery life, or BLE range.
 
-## First real compile — what "fix a NimBLE nit" means
+## Compile status
 
-Nothing in `firmware/` has been compiled yet — the environment it was written
-in has no C/C++ compiler, so `pio run` / `pio test` on your machine is the
-first time a compiler sees it. The Python in `ml/` was actually run; this
-firmware was not.
+- `src/core/` + the desktop sim + all `native` tests: **compiled and green**
+  on GCC 16.1.0 (2026-09). `pio test -e native` → 22/22.
+- `src/sensors/`, `src/ble/`, `src/main.cpp` (the ESP32 build): **not yet
+  compiled** — needs `pio run -e esp32dev`, which pulls the Arduino
+  toolchain + NimBLE. This is the one place a library-version nit could bite:
 
-The one spot most likely to error is `src/ble/gatt_server.cpp`. The
-`NimBLE-Arduino` library **changed three callback function signatures**
+The `NimBLE-Arduino` library **changed three callback function signatures**
 between v1.x and v2.x:
 
 | callback | v1.4.x (what this code uses) | v2.x |
@@ -114,9 +120,11 @@ mechanical fix — the logic is covered by the `native` tests.
 
 | Piece | State |
 |---|---|
-| SOS state machine (10 s window, fusion-gate, cancel logging) | **complete**, host-tested — this is the safety core |
-| BLE JSON schema + serialization | complete, host-tested |
-| MPU6050 / piezo / FSR / button / buzzer drivers | complete, **not tested on hardware** |
+| SOS state machine (10 s window, fusion-gate, cancel logging) | **complete**, host-tested (10 tests green) — this is the safety core |
+| BLE JSON schema + serialization | complete, host-tested (6 tests green) |
+| crash fusion classifier | complete, host-tested (6 tests green) — thresholds provisional (see below) |
+| desktop simulator | complete, runs on synthetic + real DAMOTO windows |
+| MPU6050 / piezo / FSR / button / buzzer drivers | complete, compiles for native pieces, **not tested on hardware** |
 | NimBLE GATT server | complete, **not compiled**; callback signatures target NimBLE 1.4.x |
 | **`crash_fusion.cpp` thresholds** | **PROVISIONAL hand-set values.** Not the ML model. Must be re-tuned against drop-test data and then replaced by the ported Random Forest once `ml/README.md` shows a trustworthy crash model (ADR-3). |
 | Battery %, `pre_ride_passed` | stubbed (`-1` / `false`) — battery curve is a BOM task, pre-ride gate is Phase 3 |

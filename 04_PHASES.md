@@ -22,7 +22,7 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
 | Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
 | Software & App | BLE data pipeline (helmet ↔ app) | Prototype (firmware side) | Firmware side written: `firmware/src/core/ble_schema.*` (versioned JSON, host-tested) + NimBLE GATT server + `tools/ble_probe.py` desktop client. App side still not started. |
-| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` scaffolded: safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + sensor drivers + BLE, with host unit tests. **Not compiled or run on hardware yet.** Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
+| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` — safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + BLE schema **compiled & host-tested green (22/22, GCC 16)**. Desktop sim runs the real core on the DAMOTO windows: 8 crash SOS, 0 false alarms on 162 non-crash windows. ESP32 build (sensors/BLE) not yet compiled; no hardware. Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
 | Firmware & Intelligence | Continuous data flywheel (confirm/cancel → retraining) | Design | Architecture defined (ADR-6) — depends on Phase 2 hardware and a consent flow (`06_GOVERNANCE.md`) before going live |
 | Business & Market | Market & competitive landscape | Validated | Zomato, Rapido, Ola, AVRO Helmets mapped; differentiation identified |
 | Business & Market | B2B2C GTM strategy | Design | Path defined (fleet-leasing/insurer pilot before platform HQ) — no partner conversations started |
@@ -134,8 +134,9 @@ Panic-button behaviour: **decided** — same 10 s window + buzzer as a crash
 (`03_RULES.md` §1 rationale), `cfg::kPanicUsesCancelWindow = true`.
 
 **Still to do (needs physical hardware — the actual Phase 2 work):**
-- `pio run` / `pio test -e native` — first real compile; fix any NimBLE API
-  drift against the resolved library version.
+- `pio run -e esp32dev` — first compile of the sensor + NimBLE layer (the
+  `native` tests and `sim` already build & pass on GCC 16); fix any NimBLE
+  API drift against the resolved library version.
 - Assemble MPU6050 + piezo + FSR + ESP32 + panic button + buzzer per
   `01_REQUIREMENTS.md` §4.1 / `firmware/docs/WIRING.md`. Panic button first.
 - Bring-up on the bench: verify each sensor, then the full
