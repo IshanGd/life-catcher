@@ -1,0 +1,14 @@
+# Normalize line endings: LF in the repo, checked out native on Windows.
+* text=auto eol=lf
+
+*.py    text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+*.csv   text eol=lf
+
+# Binary
+*.pkl   binary
+*.png   binary
+*.jpg   binary
+*.bin   binary

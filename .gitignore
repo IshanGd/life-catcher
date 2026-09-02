@@ -1,11 +1,17 @@
-# ML pipeline
-ml/data/**/raw/
-ml/data/**/real/
+# ML pipeline — datasets and generated artifacts are not committed
+ml/data/**
+!ml/data/**/
+!ml/data/**/README.md
+!ml/data/**/.gitkeep
+ml/models/*
+!ml/models/.gitkeep
 *.pkl
+*.meta.json
 __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
 
 # Firmware / PlatformIO
 firmware/.pio/

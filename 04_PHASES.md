@@ -15,7 +15,8 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Hardware & Sensors | Panic / SOS button | Design | Trivial wiring, near-zero cost — ready to build first |
 | Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Design | Sampling method & calibration process defined — physical chamber/mouthpiece not yet designed |
 | Hardware & Sensors | Cancel/confirm buzzer + UX | Design | 10-second confirm window logic agreed |
-| Firmware & Intelligence | Crash-detection ML training pipeline | **Not started** | No crash/pothole/hard-brake dataset collected yet — top priority gap |
+| Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | Scaffolding now in-repo at `ml/` (synthetic generator → `features.py` → `train_model.py`, schema validation, smoke tests) — runs end-to-end, reports crash-class FN/FP per `03_RULES.md` §3 |
+| Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO adapter written (`ml/loaders/damoto.py`), not yet validated against downloaded files; no non-synthetic training run yet; `pothole_bump` negative source still TBD — this is critical-path #1 |
 | Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
 | Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
@@ -29,12 +30,15 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Business & Market | Data-use / consent governance policy | **Not started** | Coaching-vs-disciplinary use of safety scores, driver consent for the retraining flywheel, and third-party data sharing all undocumented — see `06_GOVERNANCE.md` |
 | Business & Market | Revenue model | **Not started** | Hypothesis stated (device + subscription, `01_REQUIREMENTS.md` §4.5) but unvalidated |
 
-**Note on the ML pipeline:** a working, testable *scaffolding* now exists
-(`generate_synthetic_data.py` → `features.py` → `train_model.py`,
-producing `rf_crash_classifier.pkl`) — this validates the pipeline mechanics,
-not real-world accuracy. It should be read as "Design→Prototype for the
-pipeline itself," while the dataset row above stays **Not started** until
-real or controlled-drop-test data is used.
+**Note on the ML pipeline:** the *scaffolding* now lives in the repo under
+`ml/` (`generate_synthetic_data.py` → `features.py` → `train_model.py`,
+producing `models/rf_crash_classifier.pkl`, plus `schema.py` validation and
+`tests/`). It runs end-to-end and scores 100% on synthetic data — which,
+per `01_REQUIREMENTS.md` §4.3 **[LOCKED]**, means the pipeline mechanics
+work, *not* that detection is accurate. The synthetic classes are separated
+by construction. Phase 1 stays open until a model is trained and evaluated
+on non-synthetic data with documented crash-class false-negative/false-
+positive rates.
 
 ## Critical path (what actually gates progress, in order)
 
@@ -72,12 +76,24 @@ mockup both exist.
   two-wheeler fall/critical-events dataset (actual motorcycle-mounted
   accel+gyro data including real falls/near-falls) as the closest real
   match; use SisFall/UMAFall/UP-Fall only for negative-class diversity, not
-  as a crash-class substitute.
+  as a crash-class substitute. — _DAMOTO source identified
+  (Data in Brief 23:103828, Mendeley Data 10.17632/n6pgvs3d24); download is
+  a manual step, see `ml/data/damoto/README.md`._
 - Build a loader that reshapes real data into the existing
   `{ax, ay, az, gx, gy, gz, label, window_id}` window schema so
-  `features.py`/`train_model.py` work unchanged.
-- Retrain and report crash-class false-negative/false-positive rates
-  (not just accuracy) on real data.
+  `features.py`/`train_model.py` work unchanged. — _**done** (structure):
+  `ml/loaders/damoto.py` + `ml/loaders/base.py` (1 kHz→50 Hz anti-aliased
+  resample, windowing, unit conversion). Config-driven; column order / units
+  / file layout still need confirming against the downloaded files
+  (`python -m loaders.damoto --describe`)._
+- Still open:
+  - Download DAMOTO; run `--describe`; reconcile `DamotoConfig` +
+    `SCENARIO_TO_LABEL` with the real files; update the provenance table in
+    `ml/README.md`.
+  - Pick and load a `pothole_bump` / negative-diversity source (DAMOTO has
+    no pothole trials).
+  - Retrain with `--provenance real` and report crash-class
+    false-negative/false-positive rates (not just accuracy) on real data.
 - Plan and run controlled drop-tests (helmet dropped from set heights,
   simulated hard stops, real pothole rides) once hardware exists — this
   becomes the highest-value data collection activity once Phase 2 lands.

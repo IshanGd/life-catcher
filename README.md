@@ -30,14 +30,17 @@ in this order:
 `04_PHASES.md` are derived from — open them directly for anything not
 fully captured in writing.
 
+`ml/` holds the crash-detection pipeline — see `ml/README.md`. It runs
+end-to-end on synthetic data today; Phase 1 (real data) is in progress.
+
 ## Source material
 
 These docs synthesize (and should be kept consistent with):
 - Project overview and feature-categorization docs (market research, BOM,
   competitive landscape)
-- The existing ML pipeline (`generate_synthetic_data.py`, `features.py`,
-  `train_model.py`, and its own `README.md`) — kept in `ml/` once this repo
-  is assembled per `02_ARCHITECTURE.md`'s layout
+- The crash-detection ML pipeline, now in `ml/` per `02_ARCHITECTURE.md`'s
+  layout (`generate_synthetic_data.py`, `features.py`, `train_model.py`,
+  `schema.py`, `loaders/`, `tests/`, and its own `README.md`)
 - The dashboard and progress-map HTML mockups in `mockups/`
 
 ## If you're an agent starting fresh here
