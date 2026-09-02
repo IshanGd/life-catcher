@@ -1,0 +1,143 @@
+# Smart Helmet — Phases & Roadmap
+
+Status snapshot below reflects the project's own progress tracking as of
+Aug 2026. Statuses: **Concept → Design → Prototype → Validated → Pilot-ready**.
+Update this table as work lands — don't let it drift from `03_RULES.md` §5.
+
+## Current status by component
+
+| Lane | Component | Status | Note |
+|---|---|---|---|
+| Hardware & Sensors | MPU6050 + ML crash detection | Design | Core algorithm approach chosen — no training data yet |
+| Hardware & Sensors | Piezo impact sensor | Design | Fusion logic with MPU6050 defined, wiring straightforward |
+| Hardware & Sensors | FSR wear detection | Design | Standard, low-risk component — placement TBD in build |
+| Hardware & Sensors | ESP32 + BLE architecture | Design | Replaces NEO-6M/SIM800L — phone-offload confirmed as final approach |
+| Hardware & Sensors | Panic / SOS button | Design | Trivial wiring, near-zero cost — ready to build first |
+| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Design | Sampling method & calibration process defined — physical chamber/mouthpiece not yet designed |
+| Hardware & Sensors | Cancel/confirm buzzer + UX | Design | 10-second confirm window logic agreed |
+| Firmware & Intelligence | Crash-detection ML training pipeline | **Not started** | No crash/pothole/hard-brake dataset collected yet — top priority gap |
+| Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
+| Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
+| Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
+| Software & App | Fleet-ops / platform dashboard | Concept | Metrics defined (safety, compliance, risk, fatigue, device health) — no UI or backend built |
+| Software & App | BLE data pipeline (helmet ↔ app) | Design | Architecture defined — no firmware/app code written yet |
+| Business & Market | Market & competitive landscape | Validated | Zomato, Rapido, Ola, AVRO Helmets mapped; differentiation identified |
+| Business & Market | B2B2C GTM strategy | Design | Path defined (fleet-leasing/insurer pilot before platform HQ) — no partner conversations started |
+| Business & Market | Pilot partner (fleet/insurer) | **Not started** | Not yet identified or approached |
+| Business & Market | Regulatory strategy (ETA/telecom) | Design | BLE-only architecture avoids ETA certification requirement by design |
+
+**Note on the ML pipeline:** a working, testable *scaffolding* now exists
+(`generate_synthetic_data.py` → `features.py` → `train_model.py`,
+producing `rf_crash_classifier.pkl`) — this validates the pipeline mechanics,
+not real-world accuracy. It should be read as "Design→Prototype for the
+pipeline itself," while the dataset row above stays **Not started** until
+real or controlled-drop-test data is used.
+
+## Critical path (what actually gates progress, in order)
+
+1. **ML crash-detection dataset.** Furthest behind, and everything else
+   (field validation, pilot pitch, insurer trust) depends on real
+   precision/recall numbers, not the feature list.
+2. **Physical prototype build.** Every hardware row is still at "design,"
+   not "prototype" — nothing has been soldered or assembled yet.
+3. **Alcohol sensor breath-chamber design.** The one hardware piece with an
+   unresolved physical-design question (mouthpiece/hygiene), not just a
+   wiring task.
+4. **Pilot partner outreach.** The GTM path is defined but has zero real-
+   world traction; this can start in parallel with hardware work, not after.
+
+## Phase plan
+
+### Phase 0 — Foundations (done)
+- Market/competitive research, feature categorization, B2B2C GTM strategy.
+- Companion app UI mockup (iOS + Android) with sample data.
+- ML pipeline scaffolding validated on synthetic data.
+- Architecture decisions locked (phone-offload, ESP32+BLE, fusion-only
+  triggers, gated alcohol check) — see `02_ARCHITECTURE.md`.
+
+**Exit criteria (met):** requirements, architecture, and design docs exist
+and are internally consistent; a runnable ML scaffold and a clickable app
+mockup both exist.
+
+### Phase 1 — Real crash-detection data (critical path #1)
+- Source or generate a real/controlled-test dataset: prioritize the DAMOTO
+  two-wheeler fall/critical-events dataset (actual motorcycle-mounted
+  accel+gyro data including real falls/near-falls) as the closest real
+  match; use SisFall/UMAFall/UP-Fall only for negative-class diversity, not
+  as a crash-class substitute.
+- Build a loader that reshapes real data into the existing
+  `{ax, ay, az, gx, gy, gz, label, window_id}` window schema so
+  `features.py`/`train_model.py` work unchanged.
+- Retrain and report crash-class false-negative/false-positive rates
+  (not just accuracy) on real data.
+- Plan and run controlled drop-tests (helmet dropped from set heights,
+  simulated hard stops, real pothole rides) once hardware exists — this
+  becomes the highest-value data collection activity once Phase 2 lands.
+
+**Exit criteria:** a model trained and evaluated on non-synthetic data, with
+documented false-positive/false-negative rates.
+
+### Phase 2 — Physical prototype build
+- Assemble MPU6050, piezo, FSR, ESP32+BLE, panic button, and buzzer per
+  `01_REQUIREMENTS.md` §4.1.
+- Bring up firmware: sensor reads → BLE relay, matching the schema in
+  `02_ARCHITECTURE.md` §4.
+- Panic/SOS button first (trivial wiring, ready to build immediately,
+  independent of everything else).
+
+**Exit criteria:** a working, wearable prototype relaying live sensor data
+over BLE to a test harness or the app.
+
+### Phase 3 — Alcohol sensor integration
+- Design and prototype the enclosed breath-sampling chamber (mouthpiece,
+  hygiene handling) — the unresolved physical-design piece.
+- Implement the pre-ride "check-in" gate flow (post-donning, pre-"go
+  online") and per-unit calibration step.
+
+**Exit criteria:** a repeatable, documented per-unit calibration process and
+a working pre-ride check-in flow on real hardware.
+
+### Phase 4 — Companion app: real functionality
+- Replace the mockup's sample data with the live BLE pipeline from Phase 2,
+  through the app's single data-service seam (`02_ARCHITECTURE.md` §5).
+- Implement ride behavior scoring and fatigue nudge logic (currently
+  concept-only) against real accel + phone GPS data.
+- Implement SOS relay via phone data/SMS + phone GPS.
+
+**Exit criteria:** the app mockup screens are backed by real device data and
+a real (not simulated) SOS path, tested end-to-end.
+
+### Phase 5 — Fleet-ops dashboard
+- Design and build the dashboard against the five metric families already
+  defined (safety, compliance, risk, fatigue, device health).
+- Deliberately sequenced after the driver-facing app has real data —
+  building fleet aggregation before there's real per-driver data to
+  aggregate is wasted work.
+
+**Exit criteria:** a fleet-ops user can see aggregate safety/compliance/
+risk/fatigue/device-health metrics from real pilot devices.
+
+### Phase 6 — Pilot
+- Approach a first partner: regional fleet-leasing company, city-level
+  delivery aggregator, or an insurer underwriting gig-driver policies —
+  not a direct approach to a major platform's HQ.
+- Run the pilot to generate real-world false-positive/negative, durability,
+  and battery-life data.
+- Use pilot data as the evidence base for later platform conversations.
+
+**Exit criteria:** documented pilot results (accuracy, durability, battery
+life) and at least one follow-on conversation with a larger platform,
+positioned explicitly against Zomato (wear-compliance only) and AVRO
+Helmets (undifferentiated crash-detection) using the alcohol + behavior-
+scoring + fatigue bundle as the wedge.
+
+## Sequencing notes for Claude Code
+
+- Do not start Phase 5 (fleet dashboard) work before Phase 1 (real data) and
+  Phase 2 (hardware) are substantially underway — there's nothing real to
+  aggregate yet, and it risks locking in a data model before the real event
+  schema is proven on hardware.
+- Phase 3 (alcohol chamber) and Phase 6 (pilot outreach) can run in parallel
+  with Phase 1/2 — they don't block or get blocked by the ML/hardware work.
+- Any phase-status update should be reflected back into the status table
+  at the top of this file in the same change.

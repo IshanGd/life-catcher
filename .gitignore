@@ -1,0 +1,26 @@
+# ML pipeline
+ml/data/**/raw/
+ml/data/**/real/
+*.pkl
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Firmware / PlatformIO
+firmware/.pio/
+firmware/.vscode/
+*.bin
+*.elf
+
+# Flutter / app
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
