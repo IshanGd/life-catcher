@@ -208,6 +208,25 @@ The app is the source of truth for GPS coordinates and SOS dispatch — it
 attaches its own location and dispatches via its own SIM once it receives a
 confirmed (non-cancelled) event.
 
+### Schema 1 — fields the firmware adds (additive, non-breaking)
+
+The Phase 2 firmware (`firmware/src/core/ble_schema.*`) emits, on top of the
+minimal shapes above:
+
+- **status:** `ble_link` (bool) — so the app can show link state directly.
+- **event lifecycle:** an SOS produces up to two follow-up notifications on
+  the EVENT characteristic with the same `event_type`:
+  - `{... "awaiting_cancel": false, "cancelled": true, "cancel_reason": "driver"}`
+    when the driver cancels inside the window — this is logged, never
+    dropped (`03_RULES.md` §2);
+  - `{... "awaiting_cancel": false, "confirmed": true}` when the window
+    elapses — the app dispatches SOS on this one.
+  Non-emergency events (`pothole_bump`, `harsh_brake` for ride scoring) are
+  sent once with `awaiting_cancel: false` and no follow-up.
+
+These are additive, so `schema` stays `1`. The next **breaking** change
+(removed/renamed/retyped field) bumps it to `2` and is recorded here.
+
 ## 5. Companion app data flow
 
 The app's `HelmetDataService` (or equivalent) is the **single seam** between

@@ -8,20 +8,21 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 
 | Lane | Component | Status | Note |
 |---|---|---|---|
-| Hardware & Sensors | MPU6050 + ML crash detection | Design | Core algorithm approach chosen — no training data yet |
-| Hardware & Sensors | Piezo impact sensor | Design | Fusion logic with MPU6050 defined, wiring straightforward |
-| Hardware & Sensors | FSR wear detection | Design | Standard, low-risk component — placement TBD in build |
-| Hardware & Sensors | ESP32 + BLE architecture | Design | Replaces NEO-6M/SIM800L — phone-offload confirmed as final approach |
-| Hardware & Sensors | Panic / SOS button | Design | Trivial wiring, near-zero cost — ready to build first |
-| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Design | Sampling method & calibration process defined — physical chamber/mouthpiece not yet designed |
-| Hardware & Sensors | Cancel/confirm buzzer + UX | Design | 10-second confirm window logic agreed |
+| Hardware & Sensors | MPU6050 + ML crash detection | Design | Driver written (`firmware/src/sensors/imu_mpu6050.*`, ±16 g / ±2000 dps, 50 Hz → same units as `ml/`) — not yet run on a physical MPU6050 |
+| Hardware & Sensors | Piezo impact sensor | Design | Driver + fusion gate written (`firmware/src/sensors/piezo.h`, `core/crash_fusion.*`) — not yet wired |
+| Hardware & Sensors | FSR wear detection | Design | Driver written with hysteresis (`firmware/src/sensors/fsr_wear.h`) — placement/thresholds TBD on hardware |
+| Hardware & Sensors | ESP32 + BLE architecture | Design | NimBLE GATT server written (`firmware/src/ble/`), versioned schema — not yet compiled/flashed |
+| Hardware & Sensors | Panic / SOS button | Design | Driver + SOS trigger path written & host-tested — ready to flash + wire first (Phase 2 bring-up step 1) |
+| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Design | Phase 3 — deliberately absent from the Phase 2 firmware build |
+| Hardware & Sensors | Cancel/confirm buzzer + UX | Design | Buzzer driver + the 10 s cancel-window state machine written & host-tested (`firmware/src/core/sos_state_machine.*`) |
 | Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | `ml/` runs end-to-end on synthetic **and** real data; group-aware out-of-fold evaluation; reports crash-class FN/FP per `03_RULES.md` §3; 8 smoke tests |
 | Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO loaded & verified (`ml/loaders/damoto.py`); first non-synthetic run done — 0% missed / 0% false-alarm on crash, group-aware, BUT only 4 fall events, all ~90 km/h full-rotation track falls with saturated sensors → **not a field-accuracy result** (`ml/README.md` §Results). Still needed: low-speed tip-over data, real Indian-road pothole data, controlled drop-tests (Phase 2). |
 | Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
 | Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
 | Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
-| Software & App | BLE data pipeline (helmet ↔ app) | Design | Architecture defined — no firmware/app code written yet |
+| Software & App | BLE data pipeline (helmet ↔ app) | Prototype (firmware side) | Firmware side written: `firmware/src/core/ble_schema.*` (versioned JSON, host-tested) + NimBLE GATT server + `tools/ble_probe.py` desktop client. App side still not started. |
+| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` scaffolded: safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + sensor drivers + BLE, with host unit tests. **Not compiled or run on hardware yet.** Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
 | Firmware & Intelligence | Continuous data flywheel (confirm/cancel → retraining) | Design | Architecture defined (ADR-6) — depends on Phase 2 hardware and a consent flow (`06_GOVERNANCE.md`) before going live |
 | Business & Market | Market & competitive landscape | Validated | Zomato, Rapido, Ola, AVRO Helmets mapped; differentiation identified |
 | Business & Market | B2B2C GTM strategy | Design | Path defined (fleet-leasing/insurer pilot before platform HQ) — no partner conversations started |
@@ -108,12 +109,33 @@ documented false-positive/false-negative rates. — **met** (`ml/README.md`
 note above and `01_REQUIREMENTS.md` §4.3 [LOCKED]).
 
 ### Phase 2 — Physical prototype build
-- Assemble MPU6050, piezo, FSR, ESP32+BLE, panic button, and buzzer per
-  `01_REQUIREMENTS.md` §4.1.
-- Bring up firmware: sensor reads → BLE relay, matching the schema in
-  `02_ARCHITECTURE.md` §4.
-- Panic/SOS button first (trivial wiring, ready to build immediately,
-  independent of everything else).
+
+**Firmware — done (in repo, `firmware/`), not yet compiled or on hardware:**
+- PlatformIO / Arduino project for `esp32dev`.
+- Safety-critical core (`src/core/`, framework-agnostic, host unit tests):
+  SOS state machine (fusion-only crash trigger per ADR-4, fixed 10 s cancel
+  window per `03_RULES.md` §1, cancellations emitted as logged events per
+  §2), the IMU window/feature code (same 50 Hz / 100-sample shape and units
+  as `ml/`), a provisional threshold fusion classifier, and the
+  BLE-link-down "fail visibly" monitor.
+- One driver per sensor (`src/sensors/`): MPU6050, piezo, FSR, panic button,
+  cancel button, buzzer.
+- NimBLE GATT server (`src/ble/`) emitting the versioned schema
+  (`02_ARCHITECTURE.md` §4) + `tools/ble_probe.py` desktop client.
+- Wiring/pinout doc + bring-up order in `firmware/docs/WIRING.md`.
+
+**Still to do (needs physical hardware — the actual Phase 2 work):**
+- `pio run` / `pio test -e native` — first real compile; fix any NimBLE API
+  drift against the resolved library version.
+- Assemble MPU6050 + piezo + FSR + ESP32 + panic button + buzzer per
+  `01_REQUIREMENTS.md` §4.1 / `firmware/docs/WIRING.md`. Panic button first.
+- Bring-up on the bench: verify each sensor, then the full
+  crash-fusion → cancel-window → BLE path against `ble_probe.py`.
+- Tune `crash_fusion.cpp` thresholds on real ride/drop data; feed that data
+  back to Phase 1.
+- Decide the panic-button behaviour question (`firmware/README.md`).
+- Package into a wearable form on a helmet shell (raise the BIS/ISI
+  re-certification question from `06_GOVERNANCE.md` §6 here).
 
 **Exit criteria:** a working, wearable prototype relaying live sensor data
 over BLE to a test harness or the app.

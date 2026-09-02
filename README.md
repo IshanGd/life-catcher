@@ -31,7 +31,13 @@ in this order:
 fully captured in writing.
 
 `ml/` holds the crash-detection pipeline — see `ml/README.md`. It runs
-end-to-end on synthetic data today; Phase 1 (real data) is in progress.
+end-to-end on synthetic and real (DAMOTO) data; Phase 1's exit criterion is
+met (with caveats — see `ml/README.md` §Results).
+
+`firmware/` holds the ESP32 prototype firmware — see `firmware/README.md`.
+The safety-critical core (SOS state machine, fusion gate, BLE schema) is
+written and host-unit-tested; Phase 2 (physical build + bring-up) is in
+progress and nothing is on hardware yet.
 
 ## Source material
 

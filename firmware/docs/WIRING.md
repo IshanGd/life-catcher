@@ -1,0 +1,52 @@
+# Phase 2 prototype — wiring
+
+Reference board: **generic ESP32 DevKit v1 (30-pin)**. Pin numbers are GPIO
+numbers and live in [`../include/pins.h`](../include/pins.h) — edit there if
+your board differs, keep this table in sync.
+
+Sensors match the hardware table in `01_REQUIREMENTS.md` §4.1. The MQ-3
+alcohol sensor and its breath chamber are **Phase 3** and are not part of
+this build.
+
+| Component | ESP32 pin | Notes |
+|---|---|---|
+| MPU6050 SDA | GPIO21 | I²C; 3V3 + GND to the breakout. AD0→GND ⇒ addr `0x68`. |
+| MPU6050 SCL | GPIO22 | 4.7 kΩ pull-ups to 3V3 if the breakout lacks them. |
+| MPU6050 INT | GPIO4 | optional (data-ready); firmware polls at 50 Hz regardless. |
+| Piezo (+) | GPIO34 | through ~1 MΩ to GND (bleed) **and** a Schottky clamp to 3V3 and GND. Input-only ADC1 pin. |
+| Piezo (−) | GND | |
+| FSR | GPIO35 | FSR from 3V3 to the pin; fixed resistor (~10 kΩ) from the pin to GND (divider). Input-only ADC1 pin. |
+| Panic button | GPIO25 → GND | `INPUT_PULLUP`, pressed = LOW. Momentary. Mount where a rider can hit it without looking. |
+| Cancel/confirm button | GPIO26 → GND | `INPUT_PULLUP`, pressed = LOW. This is the "I'm OK" button for the 10 s window. |
+| Buzzer | GPIO27 | active buzzer (+ to pin, − to GND) or passive via a transistor. |
+| Status LED | GPIO2 | onboard LED on most DevKits; solid = BLE linked, blinking = link lost. |
+| Battery sense | GPIO32 | optional; divider from VBAT. Set `kVbatWired = true` in `main.cpp` once wired. |
+
+**Power**: bench USB for bring-up. A single-cell LiPo + charger/boost is a
+Phase 2 packaging task, not a wiring-diagram item.
+
+**Do not** connect anything here to the motorcycle's electrical system or
+ignition. The helmet is electrically isolated from the vehicle by design
+(`03_RULES.md` §1, `01_REQUIREMENTS.md` §5).
+
+## ADC notes (ESP32)
+
+- Use **ADC1** pins (GPIO32–39) for piezo/FSR/battery — ADC2 is unavailable
+  while Wi-Fi/BLE is active.
+- GPIO34/35/36/39 are **input-only** (no internal pull-ups) — fine for the
+  analog dividers here.
+- The ESP32 ADC is non-linear near the rails; the thresholds in the sensor
+  drivers are deliberately loose and get calibrated during bring-up.
+
+## Bring-up order (04_PHASES.md Phase 2)
+
+1. **Panic button + buzzer + cancel button.** Flash, open the serial monitor,
+   press panic → you should see `[BTN] panic`, the buzzer pulses for 10 s,
+   press cancel → `[BTN] cancel` and a `cancelled` line. This exercises the
+   whole SOS state machine with zero other hardware.
+2. **MPU6050.** Confirm `MPU6050: ok` at boot. Tip the board over hard while
+   tapping the piezo → `crash_impact` SOS.
+3. **Piezo.** Tap test; watch `last_impact_peak`.
+4. **FSR.** Squeeze → status `helmet_worn` flips to `true`.
+5. **BLE.** Pair from `tools/ble_probe.py` or a generic BLE app; watch the
+   STATUS notifications and trigger an event.
