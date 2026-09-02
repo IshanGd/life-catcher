@@ -1,8 +1,13 @@
-# ML pipeline — datasets and generated artifacts are not committed
+# ML pipeline — datasets and generated artifacts are not committed.
+# Whitelist only the curated docs/placeholders, nothing that a download or a
+# pipeline run produces.
 ml/data/**
-!ml/data/**/
-!ml/data/**/README.md
-!ml/data/**/.gitkeep
+!ml/data/
+!ml/data/README.md
+!ml/data/synthetic/
+!ml/data/synthetic/.gitkeep
+!ml/data/damoto/
+!ml/data/damoto/README.md
 ml/models/*
 !ml/models/.gitkeep
 *.pkl

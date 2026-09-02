@@ -128,18 +128,30 @@ def extract_features(window: pd.DataFrame) -> dict[str, float]:
     return feats
 
 
-def build_feature_frame(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
-    """Window-frame -> (X features, y labels, window_ids), one row per window."""
+def build_feature_frame(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.Series, pd.Series, pd.Series | None]:
+    """Window-frame -> (X features, y labels, window_ids, groups).
+
+    One row per window. `groups` is the per-window `group` value when the
+    loader supplied that optional column (used for event-aware train/test
+    splits), else None.
+    """
     df = validate_window_frame(df)
+    has_group = "group" in df.columns
     rows: list[dict[str, float]] = []
     labels: list[str] = []
     wids: list[int] = []
+    groups: list[object] = []
     for wid, window in df.groupby("window_id", sort=True):
         rows.append(extract_features(window))
         labels.append(window["label"].iloc[0])
         wids.append(int(wid))
+        if has_group:
+            groups.append(window["group"].iloc[0])
     X = pd.DataFrame(rows)
-    return X, pd.Series(labels, name="label"), pd.Series(wids, name="window_id")
+    g = pd.Series(groups, name="group") if has_group else None
+    return X, pd.Series(labels, name="label"), pd.Series(wids, name="window_id"), g
 
 
 FEATURE_NAMES = None  # populated lazily by train_model for the metadata sidecar

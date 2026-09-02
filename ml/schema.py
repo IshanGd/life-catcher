@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from config import LABELS, SCHEMA_COLUMNS, WINDOW_SAMPLES
+from config import LABELS, OPTIONAL_COLUMNS, SCHEMA_COLUMNS, WINDOW_SAMPLES
 
 
 class SchemaError(ValueError):
@@ -28,9 +28,18 @@ def validate_window_frame(df: pd.DataFrame, *, allow_unlabeled: bool = False) ->
     if missing:
         raise SchemaError(f"missing required columns: {missing}")
 
-    extra = [c for c in df.columns if c not in SCHEMA_COLUMNS]
+    allowed = set(SCHEMA_COLUMNS) | set(OPTIONAL_COLUMNS)
+    extra = [c for c in df.columns if c not in allowed]
     if extra:
-        raise SchemaError(f"unexpected columns (schema is fixed): {extra}")
+        raise SchemaError(
+            f"unexpected columns (schema is {SCHEMA_COLUMNS} "
+            f"+ optional {OPTIONAL_COLUMNS}): {extra}"
+        )
+
+    if "group" in df.columns:
+        mixed_g = df.groupby("window_id")["group"].nunique()
+        if len(mixed_g[mixed_g > 1]):
+            raise SchemaError("some window_id spans more than one 'group' value")
 
     counts = df.groupby("window_id").size()
     bad = counts[counts != WINDOW_SAMPLES]

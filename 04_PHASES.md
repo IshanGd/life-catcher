@@ -15,8 +15,8 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Hardware & Sensors | Panic / SOS button | Design | Trivial wiring, near-zero cost — ready to build first |
 | Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Design | Sampling method & calibration process defined — physical chamber/mouthpiece not yet designed |
 | Hardware & Sensors | Cancel/confirm buzzer + UX | Design | 10-second confirm window logic agreed |
-| Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | Scaffolding now in-repo at `ml/` (synthetic generator → `features.py` → `train_model.py`, schema validation, smoke tests) — runs end-to-end, reports crash-class FN/FP per `03_RULES.md` §3 |
-| Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO adapter written (`ml/loaders/damoto.py`), not yet validated against downloaded files; no non-synthetic training run yet; `pothole_bump` negative source still TBD — this is critical-path #1 |
+| Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | `ml/` runs end-to-end on synthetic **and** real data; group-aware out-of-fold evaluation; reports crash-class FN/FP per `03_RULES.md` §3; 8 smoke tests |
+| Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO loaded & verified (`ml/loaders/damoto.py`); first non-synthetic run done — 0% missed / 0% false-alarm on crash, group-aware, BUT only 4 fall events, all ~90 km/h full-rotation track falls with saturated sensors → **not a field-accuracy result** (`ml/README.md` §Results). Still needed: low-speed tip-over data, real Indian-road pothole data, controlled drop-tests (Phase 2). |
 | Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
 | Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
@@ -30,21 +30,25 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Business & Market | Data-use / consent governance policy | **Not started** | Coaching-vs-disciplinary use of safety scores, driver consent for the retraining flywheel, and third-party data sharing all undocumented — see `06_GOVERNANCE.md` |
 | Business & Market | Revenue model | **Not started** | Hypothesis stated (device + subscription, `01_REQUIREMENTS.md` §4.5) but unvalidated |
 
-**Note on the ML pipeline:** the *scaffolding* now lives in the repo under
-`ml/` (`generate_synthetic_data.py` → `features.py` → `train_model.py`,
-producing `models/rf_crash_classifier.pkl`, plus `schema.py` validation and
-`tests/`). It runs end-to-end and scores 100% on synthetic data — which,
-per `01_REQUIREMENTS.md` §4.3 **[LOCKED]**, means the pipeline mechanics
-work, *not* that detection is accurate. The synthetic classes are separated
-by construction. Phase 1 stays open until a model is trained and evaluated
-on non-synthetic data with documented crash-class false-negative/false-
-positive rates.
+**Note on the ML pipeline:** `ml/` now runs end-to-end on both synthetic and
+real (DAMOTO) data, with group-aware out-of-fold evaluation and documented
+crash-class FN/FP rates (`ml/README.md` §Results). The formal Phase 1 exit
+criterion — "a model trained and evaluated on non-synthetic data, with
+documented false-positive/false-negative rates" — is **met**. But per
+`01_REQUIREMENTS.md` §4.3 **[LOCKED]** the 0%/0% crash result is *not* a
+field-accuracy claim: DAMOTO has only 4 fall events, all high-speed
+full-rotation track falls with saturated sensors, and the model keys on the
+easy multi-second on-its-side aftermath. A trustworthy crash model still
+needs low-speed tip-over data, real pothole data, and controlled drop-tests
+(Phase 2). Risk #1 below stays open.
 
 ## Critical path (what actually gates progress, in order)
 
-1. **ML crash-detection dataset.** Furthest behind, and everything else
-   (field validation, pilot pitch, insurer trust) depends on real
-   precision/recall numbers, not the feature list.
+1. **ML crash-detection dataset.** Real data now flows through the pipeline
+   (DAMOTO), but the crash class rests on 4 high-speed track falls only. A
+   *trustworthy* crash model — the thing pilot pitch and insurer trust
+   depend on — still needs low-speed tip-over data, real Indian-road pothole
+   data, and controlled drop-tests (blocked on Phase 2 hardware).
 2. **Physical prototype build.** Every hardware row is still at "design,"
    not "prototype" — nothing has been soldered or assembled yet.
 3. **Alcohol sensor breath-chamber design.** The one hardware piece with an
@@ -72,35 +76,36 @@ and are internally consistent; a runnable ML scaffold and a clickable app
 mockup both exist.
 
 ### Phase 1 — Real crash-detection data (critical path #1)
-- Source or generate a real/controlled-test dataset: prioritize the DAMOTO
-  two-wheeler fall/critical-events dataset (actual motorcycle-mounted
-  accel+gyro data including real falls/near-falls) as the closest real
-  match; use SisFall/UMAFall/UP-Fall only for negative-class diversity, not
-  as a crash-class substitute. — _DAMOTO source located: supplementary ZIPs
-  on PMC (Data in Brief 23:103828 + corrigendum 30:105577), **not** Mendeley;
-  download steps + known caveats (Ay channel bug, ±1.8 g accel range, only 4
-  fall recordings) in `ml/data/damoto/README.md`._
-- Build a loader that reshapes real data into the existing
-  `{ax, ay, az, gx, gy, gz, label, window_id}` window schema so
-  `features.py`/`train_model.py` work unchanged. — _**done** (structure):
-  `ml/loaders/damoto.py` + `ml/loaders/base.py` (1 kHz→50 Hz anti-aliased
-  resample, windowing, unit conversion). Config-driven; column order / units
-  / file layout still need confirming against the downloaded files
-  (`python -m loaders.damoto --describe`)._
-- Still open:
-  - Download DAMOTO; run `--describe`; reconcile `DamotoConfig` +
-    `SCENARIO_TO_LABEL` with the real files; update the provenance table in
-    `ml/README.md`.
-  - Pick and load a `pothole_bump` / negative-diversity source (DAMOTO has
-    no pothole trials).
-  - Retrain with `--provenance real` and report crash-class
-    false-negative/false-positive rates (not just accuracy) on real data.
-- Plan and run controlled drop-tests (helmet dropped from set heights,
-  simulated hard stops, real pothole rides) once hardware exists — this
-  becomes the highest-value data collection activity once Phase 2 lands.
+
+**Done:**
+- DAMOTO located (supplementary ZIPs on PMC — Data in Brief 23:103828 +
+  corrigendum 30:105577, **not** Mendeley) and loaded via
+  `ml/loaders/damoto.py` + `base.py`: tab-sep CSV parse, 1 kHz → 50 Hz
+  anti-aliased decimation, m/s²→g, fall-window labelling from Table 1
+  timestamps, harsh-braking event detection, a `LABEL_PLAN` mapping DAMOTO
+  scenarios to the 4-class schema, and a `group` column (source event) for
+  leak-free evaluation.
+- First non-synthetic training run (`models/rf_crash_damoto.pkl`): RF,
+  222 windows, **group-aware out-of-fold** 3-fold CV — 0/60 missed crashes,
+  0/162 false alarms, 0/41 fall-like near-falls misflagged. Full write-up
+  and the honest caveats in `ml/README.md` §Results.
+- `pothole_bump` sourced from DAMOTO "Much degraded track" (rough-road) as a
+  stand-in.
+
+**Still open (needed for a *trustworthy* crash model, not the exit criterion):**
+- Low-speed urban tip-over data — DAMOTO is all ~90 km/h full-rotation falls.
+- Real Indian-road pothole data — the current pothole class is one
+  rough-road recording from a different logger session.
+- Controlled drop-tests (helmet dropped from set heights, simulated hard
+  stops, real pothole rides) once hardware exists — highest-value data
+  activity once Phase 2 lands.
+- SisFall / UMAFall / UP-Fall for negative-class diversity only, never as a
+  crash substitute.
 
 **Exit criteria:** a model trained and evaluated on non-synthetic data, with
-documented false-positive/false-negative rates.
+documented false-positive/false-negative rates. — **met** (`ml/README.md`
+§Results); the result is explicitly not a field-accuracy claim (see the
+note above and `01_REQUIREMENTS.md` §4.3 [LOCKED]).
 
 ### Phase 2 — Physical prototype build
 - Assemble MPU6050, piezo, FSR, ESP32+BLE, panic button, and buzzer per

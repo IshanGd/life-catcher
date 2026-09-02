@@ -44,6 +44,12 @@ SCHEMA_COLUMNS: tuple[str, ...] = (
     "window_id",        # int; 100 consecutive rows share one window_id + label
 )
 
+# Optional columns a loader MAY add. `group` names the physical event /
+# recording a window came from, so evaluation can hold out whole events
+# instead of leaking correlated overlapping windows across the split
+# (real-data windows from one fall must not sit in both train and test).
+OPTIONAL_COLUMNS: tuple[str, ...] = ("group",)
+
 # --- Units -----------------------------------------------------------------
 # The pipeline works in these units end to end. Loaders convert into them.
 ACCEL_UNIT: str = "g"        # 1 g = 9.80665 m/s^2

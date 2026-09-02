@@ -37,7 +37,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
 )
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold
 
 from config import CRASH_LABEL, LABELS, RANDOM_SEED
 from features import build_feature_frame
@@ -129,48 +129,75 @@ def main() -> None:
     import joblib
 
     raw = pd.read_csv(args.data)
-    X, y, wids = build_feature_frame(raw)
+    X, y, wids, groups = build_feature_frame(raw)
     print(f"loaded {len(X)} windows / {X.shape[1]} features from {args.data}")
     print(y.value_counts().to_string())
 
-    clf = RandomForestClassifier(
-        n_estimators=args.n_estimators,
-        max_depth=args.max_depth,
-        class_weight="balanced",
-        random_state=args.seed,
-        n_jobs=-1,
-    )
+    grouped = groups is not None and groups.nunique() > 1
+    if grouped:
+        print(f"\ngroup-aware evaluation: {groups.nunique()} groups "
+              f"({sorted(groups.unique())}) — whole groups are held out so "
+              f"correlated overlapping windows never straddle the split.")
+    elif args.provenance != "synthetic":
+        print("\nWARNING: non-synthetic data with no 'group' column — overlapping "
+              "windows from one event may leak across the split and flatter the "
+              "metrics. Have the loader emit a 'group' column.")
 
-    # --- held-out split ------------------------------------------------
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=args.test_size, stratify=y, random_state=args.seed
-    )
-    clf.fit(X_tr, y_tr)
-    holdout = evaluate(y_te, clf.predict(X_te), f"HELD-OUT TEST ({len(X_te)} windows)")
-
-    # --- stratified CV on the crash error rates ---------------------
-    cv_missed, cv_fa = [], []
-    skf = StratifiedKFold(n_splits=args.cv_folds, shuffle=True, random_state=args.seed)
-    for tr_i, te_i in skf.split(X, y):
-        m = RandomForestClassifier(
+    def _rf() -> RandomForestClassifier:
+        return RandomForestClassifier(
             n_estimators=args.n_estimators, max_depth=args.max_depth,
             class_weight="balanced", random_state=args.seed, n_jobs=-1,
         )
-        m.fit(X.iloc[tr_i], y.iloc[tr_i])
-        r = crash_error_rates(np.asarray(y.iloc[te_i]), m.predict(X.iloc[te_i]))
+
+    # --- choose the split -------------------------------------------
+    if grouped:
+        groups_per_class = (
+            pd.DataFrame({"y": y.values, "g": groups.values})
+            .groupby("y")["g"].nunique()
+        )
+        n_splits = max(2, min(args.cv_folds, int(groups_per_class.min())))
+        splitter = StratifiedGroupKFold(n_splits=n_splits)
+        folds = list(splitter.split(X, y, groups))
+        print(f"groups per class: {groups_per_class.to_dict()}  ->  "
+              f"{n_splits}-fold grouped CV")
+    else:
+        n_splits = args.cv_folds
+        splitter = StratifiedKFold(n_splits=n_splits, shuffle=True,
+                                   random_state=args.seed)
+        folds = list(splitter.split(X, y))
+
+    # --- out-of-fold predictions: every window scored once by a model
+    #     that never saw its group. This IS the held-out evaluation for a
+    #     dataset this small -- one honest confusion matrix over everything.
+    oof = pd.Series(index=X.index, dtype=object)
+    cv_missed, cv_fa = [], []
+    for tr_i, te_i in folds:
+        m = _rf().fit(X.iloc[tr_i], y.iloc[tr_i])
+        pred = m.predict(X.iloc[te_i])
+        oof.iloc[te_i] = pred
+        r = crash_error_rates(np.asarray(y.iloc[te_i]), pred)
         cv_missed.append(r["missed_crash_rate"])
         cv_fa.append(r["crash_false_alarm_rate"])
-    _print_block(f"{args.cv_folds}-FOLD CV - crash error rates (mean +/- std)")
-    print(f"missed-crash rate  : {np.mean(cv_missed):.4f} +/- {np.std(cv_missed):.4f}")
-    print(f"false-alarm rate   : {np.mean(cv_fa):.4f} +/- {np.std(cv_fa):.4f}")
+
+    kind = "grouped " if grouped else ""
+    holdout = evaluate(
+        y, oof.to_numpy(),
+        f"OUT-OF-FOLD ({len(X)} windows, {n_splits}-fold {kind}CV)",
+    )
+    _print_block(f"PER-FOLD crash error rates ({n_splits}-fold {kind}CV)")
+    print(f"missed-crash rate  : mean {np.nanmean(cv_missed):.4f}  "
+          f"per fold: {[round(v, 3) for v in cv_missed]}")
+    print(f"false-alarm rate   : mean {np.nanmean(cv_fa):.4f}  "
+          f"per fold: {[round(v, 3) for v in cv_fa]}")
+
+    clf = _rf().fit(X, y)  # for feature importances + the saved artifact
 
     # --- feature importances --------------------------------------
     _print_block("TOP 15 FEATURE IMPORTANCES")
     imp = pd.Series(clf.feature_importances_, index=X.columns).sort_values(ascending=False)
     print(imp.head(15).to_string())
 
-    # --- refit on all data, save ---------------------------------
-    clf.fit(X, y)
+    # --- save the all-data model + sidecar ----------------------
     args.out.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(clf, args.out)
 
@@ -187,10 +214,12 @@ def main() -> None:
         "data_path": str(args.data),
         "data_provenance": args.provenance,
         "provenance_note": args.provenance_note,
-        "holdout_metrics": {k: (None if isinstance(v, float) and np.isnan(v) else v)
-                            for k, v in holdout.items()},
-        "cv_missed_crash_rate_mean": float(np.mean(cv_missed)),
-        "cv_false_alarm_rate_mean": float(np.mean(cv_fa)),
+        "evaluation": "out-of-fold, group-aware" if grouped else "out-of-fold, stratified",
+        "n_cv_folds": n_splits,
+        "oof_metrics": {k: (None if isinstance(v, float) and np.isnan(v) else v)
+                        for k, v in holdout.items()},
+        "cv_missed_crash_rate_per_fold": [None if np.isnan(v) else float(v) for v in cv_missed],
+        "cv_false_alarm_rate_per_fold": [None if np.isnan(v) else float(v) for v in cv_fa],
     }
     sidecar.write_text(json.dumps(meta, indent=2, default=str))
     print(f"\nsaved model  -> {args.out}")

@@ -263,9 +263,14 @@ See `04_PHASES.md` for sequencing.
 Ordered by what actually gates progress — see `04_PHASES.md` for the phase
 breakdown these map to:
 
-1. **No field-validated ML crash-detection accuracy yet.** Everything else
-   (field validation, pilot pitch, insurer trust) depends on real
-   precision/recall numbers, not the feature list.
+1. **No field-validated ML crash-detection accuracy yet.** Real data now
+   runs through the pipeline (DAMOTO — `ml/README.md` §Results, Sept 2026):
+   0% missed / 0% false-alarm on the crash class, group-aware. But that
+   rests on only 4 high-speed full-rotation track falls with saturated
+   sensors, and one rough-road recording for potholes — it is **not** a
+   field-accuracy number. Pilot pitch and insurer trust still depend on
+   low-speed tip-over data, real Indian-road pothole data, and controlled
+   drop-tests (blocked on the Phase 2 prototype).
 2. **No physical prototype built yet.** Every hardware component is at
    "design," not "prototype" — nothing has been soldered/assembled.
 3. **Alcohol sensor breath-chamber physical design is unresolved.** This is

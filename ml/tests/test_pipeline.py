@@ -40,15 +40,16 @@ def test_validate_rejects_bad_window_length():
 
 def test_features_one_row_per_window_no_nans():
     df = generate(n_per_class=15, seed=2)
-    X, y, wids = build_feature_frame(df)
+    X, y, wids, groups = build_feature_frame(df)
     assert len(X) == df["window_id"].nunique() == len(y) == len(wids)
+    assert groups is None  # synthetic data carries no 'group' column
     assert not X.isna().any().any()
     assert np.isfinite(X.to_numpy()).all()
 
 
 def test_recovery_ratio_separates_classes():
     df = generate(n_per_class=80, seed=3)
-    X, y, _ = build_feature_frame(df)
+    X, y, _, _ = build_feature_frame(df)
     med = {lbl: X.loc[y.values == lbl, "g_recovery_ratio"].median() for lbl in LABELS}
     # normal riding: gyro roughly stationary across the window -> ratio ~ 1
     assert 0.7 < med["normal_riding"] < 1.4
@@ -60,6 +61,45 @@ def test_recovery_ratio_separates_classes():
     assert med["crash_impact"] < med["pothole_bump"]
     # harsh brake: disturbance ramps up over the window -> ratio > 1
     assert med["harsh_brake"] > med["normal_riding"]
+
+
+def test_group_column_roundtrips_through_schema_and_features():
+    df = generate(n_per_class=6, seed=5)
+    # tag each window with a fake group id
+    gmap = {w: f"grp{w % 3}" for w in df["window_id"].unique()}
+    df["group"] = df["window_id"].map(gmap)
+    validate_window_frame(df)  # must not raise
+    X, y, wids, groups = build_feature_frame(df)
+    assert groups is not None and len(groups) == len(X)
+    assert set(groups) == {"grp0", "grp1", "grp2"}
+
+
+def test_schema_rejects_group_split_across_window():
+    df = generate(n_per_class=2, seed=6)
+    df["group"] = "a"
+    df.loc[df.index[-1], "group"] = "b"  # one row of the last window differs
+    try:
+        validate_window_frame(df)
+    except SchemaError:
+        return
+    raise AssertionError("expected SchemaError for a window spanning two groups")
+
+
+def test_damoto_windows_if_present():
+    """Runs only when the real DAMOTO CSVs have been downloaded."""
+    from loaders.damoto import DATA_DIR, build_windows
+
+    if not any(DATA_DIR.rglob("*.csv")):
+        print("  (skipped: no DAMOTO data under ml/data/damoto/)")
+        return
+    df = build_windows()
+    validate_window_frame(df)
+    assert "group" in df.columns
+    labels = set(df["label"])
+    assert "crash_impact" in labels
+    # crash windows must come from >= 2 distinct falls so grouped CV is possible
+    crash_groups = df.loc[df["label"] == "crash_impact", "group"].nunique()
+    assert crash_groups >= 2
 
 
 def test_resample_and_window_roundtrip():

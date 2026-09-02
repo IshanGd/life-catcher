@@ -64,13 +64,50 @@ source, type (synthetic / real / controlled-test), and label mapping.
 | Dataset | Type | Location | Classes it provides | Notes |
 |---|---|---|---|---|
 | synthetic generator | **synthetic** | `data/synthetic/windows.csv` (git-ignored, regenerable) | all 4 | Separated by construction. `01_REQUIREMENTS.md` §4.3 **[LOCKED]** — validates pipeline mechanics, **not** field accuracy. No field-readiness claim may rest on it. |
-| DAMOTO (Boubezoul et al. 2019, Data in Brief 23:103828 + corrigendum 30:105577, 2020) | real (controlled track, stuntman) | `data/damoto/` (git-ignored) — supplementary ZIPs on PMC, **not Mendeley**; see `data/damoto/README.md` | `crash_impact` (4 falls), `harsh_brake` (extreme-braking near-falls), `normal_riding` | **Adapter not yet validated against downloaded files.** Use the corrigendum ZIP for falls (original `Ay` channel was swapped). Accel range only ±1.8 g (impact saturates). No pothole trials → `pothole_bump` from elsewhere. |
-| _pothole / negative-diversity source — TBD_ | — | — | `pothole_bump`, negative diversity | Phase 1: SisFall / UMAFall / UP-Fall for negative-class diversity only, never as a crash substitute. Indian-road pothole data still needed. |
+| DAMOTO (Boubezoul et al. 2019, Data in Brief 23:103828 + corrigendum 30:105577, 2020) | real (controlled track, stuntman) | `data/damoto/` (git-ignored) — supplementary ZIPs on PMC, **not Mendeley**; see `data/damoto/README.md` | `crash_impact` (4 falls), `harsh_brake` (harsh-braking events), `normal_riding` (fall pre-roll + fall-like near-falls + calm) | **Loaded & verified 2026-09** via `loaders/damoto.py`. Format: tab-sep, latin-1, cols `time,Ax,Ay,Az` (m/s²) `,Rx,Ry,Rz` (deg/s), 1 kHz → decimated to 50 Hz. Corrigendum data used (original `Ay` was swapped). **accel rails at ±1.8 g and gyro at ±110 deg/s — both saturate in every fall.** Only 4 fall events; crash windows are dominated by the multi-second on-its-side aftermath, not the impact instant. `group` column = source event, so evaluation holds out whole falls. |
+| DAMOTO "Much degraded track" | real (rough road) | `data/damoto/original_mmc2/` | `pothole_bump` | Continuous rough-road vibration used as the pothole/rough-road negative. From the **pre-corrigendum** file, so its `ay` is the buggy channel — `az`/magnitude carry the signal. A stand-in until real Indian-road pothole data exists. |
+| _low-speed tip-over + Indian-road pothole data — still needed_ | — | — | realistic `crash_impact`, `pothole_bump` | Phase 1 note: SisFall / UMAFall / UP-Fall only for negative diversity, never a crash substitute. Controlled drop-tests (Phase 2) are the real fix for the crash class. |
+
+## Results — first non-synthetic run (2026-09, `models/rf_crash_damoto.pkl`)
+
+222 windows (crash 60 / harsh_brake 24 / normal 75 / pothole 63).
+**Out-of-fold, group-aware** 3-fold CV (each of the 4 falls held out entirely
+in turn — no window from a test fall is ever in training):
+
+| metric | value |
+|---|---|
+| missed-crash rate (FN / all crash windows) | **0.00** (0 / 60), all 3 folds |
+| crash false-alarm rate (FP / all non-crash) | **0.00** (0 / 162), all 3 folds |
+| overall accuracy | 0.92 |
+| harsh_brake recall | 0.54 (weak — crude braking-event detector, genuinely subtle vs normal) |
+
+**Do not read this as field accuracy.** Per `01_REQUIREMENTS.md` §4.3
+[LOCKED] and §7 risk #1, the number is not trustworthy because:
+
+- Only **4 fall events**, all high-speed (~90 km/h) track falls with full
+  rotation and 5+ s lying on the ground. The model keys on the *sustained
+  gravity re-orientation* (`ay_std`, `ay_mean`, `az_mean` are the top
+  features) — a large, easy, low-frequency signal that generalises trivially
+  across those 4. It says nothing about the hard cases the product needs:
+  the sub-second impact, **low-speed urban tip-overs** that don't fully
+  rotate, or laying the bike down gently.
+- `pothole_bump` is one recording from a different logger session, so the
+  model may be separating *recordings*, not *phenomena*.
+- No Indian-road potholes and no low-speed drops in the data at all.
+- Both sensors saturate during the falls, so the impact transient itself is
+  clipped away.
+
+What it *does* show: the pipeline runs end-to-end on real data; the window
+schema, the 1 kHz→50 Hz decimation, group-aware evaluation, and the
+sustained-tilt features all work; and fall-like manoeuvres that recover are
+**not** false-flagged as crashes (0 / 41). Next: controlled drop-tests once
+hardware exists (Phase 2), and a real pothole source.
 
 ## Status
 
-Phase 0 scaffold: **done** (synthetic generator + features + trainer +
-schema validation runnable end to end).
-Phase 1: **in progress** — DAMOTO adapter written, pending real files +
-retrain + documented crash-class FN/FP rates on non-synthetic data
-(`04_PHASES.md` Phase 1 exit criteria).
+Phase 0 scaffold: **done**.
+Phase 1: **first non-synthetic run done** (DAMOTO loaded, group-aware
+evaluation, crash-class FN/FP documented above). The formal `04_PHASES.md`
+exit criterion is met; the caveats above mean this is *not* a field-accuracy
+claim. Still open for a trustworthy crash model: controlled drop-tests
+(Phase 2), low-speed tip-over data, real pothole data.
