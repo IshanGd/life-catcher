@@ -76,9 +76,10 @@ mockup both exist.
   two-wheeler fall/critical-events dataset (actual motorcycle-mounted
   accel+gyro data including real falls/near-falls) as the closest real
   match; use SisFall/UMAFall/UP-Fall only for negative-class diversity, not
-  as a crash-class substitute. — _DAMOTO source identified
-  (Data in Brief 23:103828, Mendeley Data 10.17632/n6pgvs3d24); download is
-  a manual step, see `ml/data/damoto/README.md`._
+  as a crash-class substitute. — _DAMOTO source located: supplementary ZIPs
+  on PMC (Data in Brief 23:103828 + corrigendum 30:105577), **not** Mendeley;
+  download steps + known caveats (Ay channel bug, ±1.8 g accel range, only 4
+  fall recordings) in `ml/data/damoto/README.md`._
 - Build a loader that reshapes real data into the existing
   `{ax, ay, az, gx, gy, gz, label, window_id}` window schema so
   `features.py`/`train_model.py` work unchanged. — _**done** (structure):

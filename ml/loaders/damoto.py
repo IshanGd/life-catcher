@@ -3,14 +3,39 @@
 Source
 ------
 "Dataset on powered two wheelers fall and critical events detection"
-Boubezoul et al., Data in Brief 23 (2019) 103828.
-  paper : https://doi.org/10.1016/j.dib.2019.103828
-  data  : Mendeley Data, https://doi.org/10.17632/n6pgvs3d24  (v1)
-3D IMU (3 accel + 3 gyro) mounted on the motorcycle. Controlled-track
-experiments: stuntman FALL trials (fall in a curve, on a slippery straight,
-in a roundabout, with intentional lean) and professional-rider NEAR-FALL
-trials (extreme braking, hard acceleration, fall-like manoeuvres), plus
-normal riding sections. High-resolution logging at ~1 kHz.
+Boubezoul et al., Data in Brief 23 (2019) 103828. Collected under the French
+ANR project DAMOTO (2008-2011).
+  paper       : https://doi.org/10.1016/j.dib.2019.103828
+  CORRIGENDUM : https://doi.org/10.1016/j.dib.2020.105577  (Data in Brief 30, 2020)
+
+The data is NOT on Mendeley — it ships as supplementary ZIPs attached to the
+articles:
+  original article (PMC6660605): mmc2.zip (6 MB) + mmc3.zip (1.9 MB)
+  corrigendum      (PMC7303291): mmc1.zip (6.4 MB)  <- USE THIS for the falls
+
+Corrigendum: a binary->ASCII conversion bug in the original release swapped
+the lateral-acceleration channel (Ay) with another sensor. The corrigendum
+ZIP contains the corrected FALL datasets. The near-fall / extreme-manoeuvre
+recordings were only in the original mmc2/mmc3 and may still carry the Ay
+bug — treat those with caution (roll/yaw/pitch gyro is unaffected).
+
+3D IMU (Bosch automotive sensor) on the motorcycle. Controlled-track
+experiments: stuntman FALL trials (curve, slippery straight, roundabout,
+intentional lean -- 4 recordings, each with a single labelled fall window,
+see FALL_EVENTS_MS below) and professional-rider NEAR-FALL trials (zigzags,
+extreme braking, accelerating manoeuvres, fall-like manoeuvres). Logging at
+1 kHz with 4 us timestamping.
+
+Known limits (matter for labelling and for comparing to our synthetic set):
+  - Accelerometer range is only +/- 1.8 g -> real ground impact SATURATES.
+    The fall signature here is tip-over rotation + sustained post-fall
+    orientation, not a clean multi-g spike. Our synthetic crash_impact
+    models 3-8 g spikes; do not expect the feature distributions to match.
+  - Gyro spec quoted as "100 deg/s" -- confirm whether that is range or
+    resolution against the real data (tip-over rates can exceed 100 deg/s).
+  - Only 4 true fall recordings. The crash_impact class from DAMOTO alone is
+    tiny; overlap-window it (crash_stride) and still expect to need
+    controlled drop-tests (Phase 2) for a real crash set.
 
 Why this is Phase 1's priority source (`04_PHASES.md`): it is real
 two-wheeler-mounted accel+gyro data containing real falls / near-falls — the
@@ -92,6 +117,19 @@ class DamotoConfig:
         }
     )
 
+
+# Labelled fall windows from Table 1 of the paper (ms from start of recording).
+# "start" = lowest crash-protector bobbin hits the ground; "end" = stuntman's
+# hips hit the floor. Falls are labelled by TIMESTAMP inside a long recording,
+# not per-file -- once the real filenames are known, map each fall file to its
+# entry here and cut the crash_impact window around [start, end] (+ margin for
+# the tip-over lead-in and the settled aftermath).
+FALL_EVENTS_MS: dict[str, tuple[int, int]] = {
+    "fall_slippery": (40132, 40428),
+    "fall_lean": (34288, 34502),
+    "fall_roundabout": (35876, 36160),
+    "fall_curve": (43486, 43756),
+}
 
 # DAMOTO scenario key -> our 4-class label. `pothole_bump` is intentionally
 # absent: DAMOTO has no pothole trials, so that negative class must come from

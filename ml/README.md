@@ -64,7 +64,7 @@ source, type (synthetic / real / controlled-test), and label mapping.
 | Dataset | Type | Location | Classes it provides | Notes |
 |---|---|---|---|---|
 | synthetic generator | **synthetic** | `data/synthetic/windows.csv` (git-ignored, regenerable) | all 4 | Separated by construction. `01_REQUIREMENTS.md` §4.3 **[LOCKED]** — validates pipeline mechanics, **not** field accuracy. No field-readiness claim may rest on it. |
-| DAMOTO (Boubezoul et al. 2019, Data in Brief 23:103828; Mendeley Data 10.17632/n6pgvs3d24) | real (controlled track, stuntman) | `data/damoto/` (git-ignored) | `crash_impact` (falls), `harsh_brake` (extreme-braking near-falls), `normal_riding` | **Adapter not yet validated against downloaded files** — see `loaders/damoto.py` header. No pothole trials → `pothole_bump` must come from elsewhere. |
+| DAMOTO (Boubezoul et al. 2019, Data in Brief 23:103828 + corrigendum 30:105577, 2020) | real (controlled track, stuntman) | `data/damoto/` (git-ignored) — supplementary ZIPs on PMC, **not Mendeley**; see `data/damoto/README.md` | `crash_impact` (4 falls), `harsh_brake` (extreme-braking near-falls), `normal_riding` | **Adapter not yet validated against downloaded files.** Use the corrigendum ZIP for falls (original `Ay` channel was swapped). Accel range only ±1.8 g (impact saturates). No pothole trials → `pothole_bump` from elsewhere. |
 | _pothole / negative-diversity source — TBD_ | — | — | `pothole_bump`, negative diversity | Phase 1: SisFall / UMAFall / UP-Fall for negative-class diversity only, never as a crash substitute. Indian-road pothole data still needed. |
 
 ## Status
