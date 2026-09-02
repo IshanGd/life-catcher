@@ -126,15 +126,98 @@ style here, including cancelled ones.
    calibration recency here is a deliberate trust signal, keep it even
    once this becomes a settings-heavy screen).
 
-## 3. Screen inventory — Fleet-Ops Dashboard (not yet designed)
+## 3. Screen inventory — Fleet-Ops Dashboard
 
-No mockup exists yet. When designing it, reuse the same design tokens
-(§1) for visual consistency with the driver app, and structure around the
-five metric families already defined in `01_REQUIREMENTS.md` §4.4: safety,
-compliance, risk, fatigue, device health — aggregated per-fleet with
-per-driver drill-down. Do not invent a different metric taxonomy; extend
-this one if a gap is found, and update `01_REQUIREMENTS.md` in the same
-change.
+No clickable mockup exists yet (unlike the driver app), but this dashboard
+now has a full spec below — build against this rather than free-designing.
+Reuse the design tokens in §1 for visual consistency with the driver app,
+but this is a **web dashboard**, not a phone screen: wider layouts, tables,
+and filters are appropriate here in a way they aren't in the driver app.
+
+This is not one screen — it's three role-scoped views over one dataset,
+matching the access model in `02_ARCHITECTURE.md` §7 and the personas in
+`01_REQUIREMENTS.md` §3. Do not build a single undifferentiated admin view;
+a user's login determines which of the three below they land on.
+
+### 3.1 Fleet Ops Manager view
+
+**Overview screen (landing page for this role):**
+1. **Fleet summary strip** — four-across stat cards, one per metric family
+   from `01_REQUIREMENTS.md` §4.4: aggregate safety score (fleet average +
+   trend arrow), compliance rate (helmet-wear % + pre-ride-checks-completed
+   %), risk (harsh-events per 100km, fleet-wide), device health (% of
+   fleet with a healthy battery/recent sync). Same visual language as the
+   driver app's stat tiles — color-coded, icon + number + label — so
+   someone who has also seen the driver app recognizes the pattern.
+2. **Driver table** — sortable/filterable list of every driver in the
+   fleet: name, current safety score, trend, helmet-wear rate, last sync,
+   battery, and a flag icon for anything needing attention (declining
+   score, failed pre-ride check, low battery, stale sync). This is the
+   "which drivers/regions need intervention" surface — sorting by score
+   ascending or by "flagged" should be the default/most obvious action.
+3. **Fleet trend chart** — same 7-day-style trend as the driver app's
+   Trends tab, but averaged across the fleet, with the option to overlay
+   a specific driver's line for comparison.
+
+**Driver drill-down screen** (reached by clicking a row in the driver
+table):
+- Renders **the same components as the driver's own Home/Trends/Alerts
+  screens** (§2.1–2.3) — safety score ring, status pills, recent events
+  including cancelled/false-positives, weekly trend, harsh-event
+  breakdown. This is a deliberate design choice: a fleet manager having a
+  coaching conversation should be looking at numbers the driver themselves
+  recognizes from their own app, not a differently-computed summary.
+- One addition not in the driver app: a **manager note/action log** — a
+  simple text log a manager can append to (e.g. "spoke with driver
+  8/14, discussed harsh braking on MG Road route"). This is intentionally
+  a coaching-log field, not a disciplinary/status field — see
+  `06_GOVERNANCE.md` for why that distinction matters and must be
+  preserved in the UI copy, not just internal policy.
+
+### 3.2 Insurer Claims Processor view
+
+A narrower, purpose-built screen — not a cut-down version of the fleet
+manager's view:
+
+1. **Incident lookup** — search/filter by device ID, date range, or driver
+   ID (whatever identifier the insurer's claim references).
+2. **Incident detail card**, for one confirmed (non-cancelled) crash event
+   only:
+   - Timestamp, GPS coordinates (map pin), severity score
+   - **Sensor fusion trail** — which sensors confirmed the event (e.g.
+     "MPU6050 + piezo," per ADR-4) — this is the credibility feature that
+     differentiates this from a self-reported claim
+   - SOS status: sent / cancelled, and if cancelled, by whom and how
+     quickly
+   - An explicit "Export for claim #___" action producing a shareable
+     record
+3. **No safety score, no event history beyond the single incident, no
+   other drivers' data** — enforced at the API layer per
+   `02_ARCHITECTURE.md` §7, not just left off this screen's design.
+
+### 3.3 Customer Support view
+
+The narrowest view, and the simplest to design:
+
+1. **Device lookup** — search by device ID or paired driver.
+2. **Device health card** — reuses the exact `DeviceHealthCard` component
+   from the driver app's Profile tab (§2.4): battery, last sync, firmware
+   version, alcohol sensor calibration age.
+3. Nothing else on this screen. No score, no events, no location history —
+   support doesn't need it to do their job, and the access model in
+   `02_ARCHITECTURE.md` §7 should make it structurally impossible for this
+   view to request it.
+
+### 3.4 Shared elements across all three views
+
+- Use the same color tokens (§1) and typography as the driver app.
+- Every view needs a persistent "logged in as: [role] · [fleet/insurer
+  name]" indicator — given three different personas share infrastructure,
+  it should never be ambiguous which scope a user is currently in.
+- None of these three views should be extensible into a fourth "sees
+  everything" role. If a new persona is identified later, it gets its own
+  row in the access-model table (`02_ARCHITECTURE.md` §7) and its own
+  scoped view — not elevated permissions on an existing one.
 
 ## 4. Component checklist (for implementation)
 
@@ -150,8 +233,17 @@ Mapping mockup elements to buildable components:
 - [ ] `RateBreakdownList` — labeled rate rows (events per 100km)
 - [ ] `ComplianceStatRow` — percentage/fraction stat pairs
 - [ ] `DriverProfileCard`
-- [ ] `DeviceHealthCard`
-- [ ] `BottomNav` — 4-tab (Home/Trends/Alerts/Profile)
+- [ ] `DeviceHealthCard` — shared between driver app Profile tab and Fleet-Ops support view
+- [ ] `BottomNav` — 4-tab (Home/Trends/Alerts/Profile), driver app only
+
+**Fleet-Ops Dashboard additions:**
+- [ ] `FleetSummaryStrip` — 4-across aggregate stat cards
+- [ ] `DriverTable` — sortable/filterable, with flag indicators
+- [ ] `FleetTrendChart` — fleet-average trend with optional per-driver overlay
+- [ ] `DriverDrillDown` — composes the driver-app components (§3.1) plus a `ManagerNoteLog`
+- [ ] `IncidentLookup` + `IncidentDetailCard` — insurer claims view, includes a `SensorFusionTrail` display
+- [ ] `DeviceLookup` — support view entry point
+- [ ] `RoleScopeIndicator` — persistent "logged in as" banner across all three Fleet-Ops views
 
 ## 5. What NOT to change without checking with the human first
 
@@ -163,3 +255,10 @@ Mapping mockup elements to buildable components:
 - The 4-tab structure — it's been mocked and reviewed on both iOS and
   Android chrome; don't add a 5th tab without confirming it belongs there
   over nesting it inside an existing tab.
+- The three-way split of the Fleet-Ops Dashboard (§3) — don't collapse it
+  into a single admin view "for simplicity." The split exists because the
+  three personas have genuinely different access needs (see
+  `02_ARCHITECTURE.md` §7), not because of a UI preference.
+- The `ManagerNoteLog` framing as a coaching log, not a disciplinary/status
+  field — this is a governance-driven wording choice (`06_GOVERNANCE.md`),
+  not a copy-editing detail.

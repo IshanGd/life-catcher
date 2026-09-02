@@ -106,6 +106,32 @@ vehicle ignition** — this keeps the hardware out of vehicle-control
 liability entirely. See `03_RULES.md` for the non-negotiable version of this
 rule.
 
+### ADR-6: The confirm/cancel window is a data pipeline, not just a UX pattern
+
+**Decision:** Every SOS confirm/cancel interaction (ADR-4's fusion trigger,
+resolved by the driver) is captured as a structured, labeled training
+example and fed back into `ml/`, in addition to being logged as a driver-
+facing app event.
+
+**Why:** This is the cheapest, freshest source of real ground-truth labels
+the product will ever have — it's generated automatically by the exact
+interaction already required for false-alarm mitigation (§`01_REQUIREMENTS.md`
+§4.4a). Treating it as a one-off app log instead of a retraining input
+wastes the single best data source available before a large-scale pilot
+exists.
+
+**Implementation implication:** the event schema in §4 below must carry
+enough information (raw window reference or feature vector, not just the
+human-readable label) to be usable as a training example, not just a
+display string. Coordinate with `ml/features.py`'s window schema
+(`{ax, ay, az, gx, gy, gz, label, window_id}`) so a confirmed/cancelled
+field event can be appended to the same dataset shape used for synthetic
+data, per `03_RULES.md` §3.
+
+**Governance dependency:** this requires its own explicit driver consent,
+separate from core safety-feature consent — see `06_GOVERNANCE.md`. Do not
+wire this pipeline live before that consent flow exists.
+
 ## 3. Repository layout (recommended)
 
 ```
@@ -192,12 +218,44 @@ backend for the static history, should never require touching a screen file.
 This mirrors the pattern already established in `app/lib/services/` — keep
 it that way; see `03_RULES.md`.
 
-## 6. Fleet dashboard architecture (concept — to be designed when built)
+## 6. Fleet-Ops Dashboard architecture
 
-Not yet started. When scoped, it needs at minimum:
-- A backend aggregating per-driver events/scores from the companion app
-  (or a platform-side relay, depending on integration model).
-- Auth/role model distinguishing fleet-ops viewers from platform admins.
-- The five metric families from `01_REQUIREMENTS.md` §4.4.
-Do not start building this before the ML pipeline and physical prototype
-phases — see `04_PHASES.md` for sequencing rationale.
+UI/screen spec is in `05_DESIGN.md` §3. Functional scope is in
+`01_REQUIREMENTS.md` §4.4. This section covers the backend/data-access
+shape.
+
+- A backend aggregating per-driver events/scores from the companion app (or
+  a platform-side relay, depending on integration model). It should read
+  from the **same event records** the driver's own app displays — the
+  Fleet-Ops Dashboard is a different view over one dataset, not a
+  separately-computed summary. This matters directly for the fleet-manager
+  drill-down use case: a coaching conversation needs to reference numbers
+  the driver recognizes from their own app.
+- Do not start building this before Phase 1 (real ML data) and Phase 2
+  (physical prototype) are substantially underway — see `04_PHASES.md` for
+  sequencing rationale. There's nothing real to aggregate yet, and building
+  fleet aggregation before the real event schema is proven on hardware
+  risks locking in a data model that doesn't match what the hardware
+  actually produces.
+
+## 7. Access model (permission tiers) [NEW]
+
+Four personas share one underlying dataset (see `01_REQUIREMENTS.md` §3)
+and must never be served through a single undifferentiated "admin" login.
+Minimum required tiers:
+
+| Tier | Can see | Cannot see |
+|---|---|---|
+| **Driver** | Their own full record (score, events, device health) | Any other driver's data |
+| **Fleet ops manager** | Aggregate fleet metrics; per-driver drill-down (score, events, trend) for drivers in their fleet | Raw sensor windows / ML training data; other fleets' data |
+| **Insurer claims processor** | Incident-level export for a specific confirmed crash event they're processing a claim for (timestamp, severity, GPS, sensor fusion trail, SOS sent/cancelled) | That driver's day-to-day safety score, unrelated event history, or any other driver's data |
+| **Customer support agent** | Device health only (battery, firmware, last sync, calibration age) for the device they're troubleshooting | Safety score, event history, location data |
+
+**Implementation rule:** enforce these as backend query scopes, not as
+frontend show/hide — a support agent's API access must not be capable of
+returning safety-score data even if a future UI change forgot to hide it.
+This is a `03_RULES.md`-level requirement, not a nice-to-have.
+
+Any new consumer of this data (e.g. a future hazard-mapping product
+per `01_REQUIREMENTS.md` §4.5) needs its own row in this table and its own
+consent path before it gets a data feed — see `06_GOVERNANCE.md`.

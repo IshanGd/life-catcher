@@ -38,11 +38,28 @@ cellular modules, onboard GPS chips).
 
 ## 3. Users / personas
 
-| Persona | Needs |
-|---|---|
-| **Driver (primary)** | Fast, low-friction pre-ride check; trustworthy crash detection with minimal false alarms; clear way to cancel a false SOS; visibility into their own safety score. |
-| **Fleet/platform ops (B2B2C buyer)** | Fleet-wide compliance and risk visibility; device health monitoring; a bundle they can point to for the driver-welfare narrative. |
-| **Insurer (secondary buyer/partner)** | Real, field-validated risk data per driver; something more than a marketing claim. |
+**There are exactly two dashboards in this product, and passengers are not a
+user of either.** This is worth stating explicitly because it's a common
+point of confusion: every sensor and screen in this product is physically
+tied to the driver (helmet-worn detection, alcohol pre-ride check, panic
+button, the phone the BLE pipeline runs through). There is no data path
+where a passenger is involved — a passenger-safety feature (route-deviation
+detection, unscheduled-stop alerts, e.g. Ola's "Guardian") is a different
+product, built on different data (the platform's trip data, not helmet
+telemetry), and is explicitly out of scope here. Do not conflate the two
+when scoping new features.
+
+| Persona | Dashboard | Needs |
+|---|---|---|
+| **Driver (primary)** | Driver companion app (built — see `05_DESIGN.md` §2) | Fast, low-friction pre-ride check; trustworthy crash detection with minimal false alarms; clear way to cancel a false SOS; visibility into their own safety score. |
+| **Fleet/platform ops manager (B2B2C buyer)** | Fleet-Ops Dashboard (spec'd — see `05_DESIGN.md` §3), aggregate + per-driver drill-down | Fleet-wide compliance and risk visibility; device health monitoring; a bundle they can point to for the driver-welfare narrative; ability to drill into one driver's record for a coaching conversation when their score drops. |
+| **Insurer claims processor (secondary buyer/partner)** | Fleet-Ops Dashboard, incident-level claims export view | Fast, objective reconstruction of a specific incident (timestamp, severity, GPS, sensor confirmation, SOS sent/cancelled) — this is a distinct, sellable feature (faster claims verification), not a side effect of the driver app's alert log. |
+| **Customer support agent** | Fleet-Ops Dashboard, device-health-only scoped view | Troubleshoot a specific driver's device (battery, firmware, last sync, calibration age) without needing access to that driver's safety score or event history. |
+
+These four personas share one underlying dataset but must see different,
+permission-scoped slices of it — see `02_ARCHITECTURE.md` §7 for the access
+model. Do not build a single undifferentiated "admin view" that shows
+everything to everyone with a login.
 
 ## 4. Functional requirements
 
@@ -117,18 +134,95 @@ the existing mockup. Functional scope:
   field-ready accuracy may be made until real or controlled-drop-test data
   has been used.
 
-### 4.4 Fleet-ops / platform dashboard (concept stage)
+### 4.4 Fleet-Ops Dashboard (spec'd — not yet built)
 
-Not yet built. Metrics are defined; a UI/backend implementation is required:
+Full screen-by-screen design now exists in `05_DESIGN.md` §3. Functional
+scope, organized by the three personas from §3 above:
 
-- Safety (aggregate and per-driver safety scores, trend)
-- Compliance (helmet-wear rate, pre-ride checks completed)
-- Risk (harsh-event rates, crash/near-miss counts)
-- Fatigue (shift-duration patterns, nudge frequency)
-- Device health (battery, firmware version, sync recency, sensor calibration
-  age) across the fleet
+**Fleet ops manager view:**
+- Fleet-wide aggregates across the five metric families: safety (aggregate
+  and per-driver scores, trend), compliance (helmet-wear rate, pre-ride
+  checks completed), risk (harsh-event rates, crash/near-miss counts),
+  fatigue (shift-duration patterns, nudge frequency), device health
+  (battery, firmware version, sync recency, sensor calibration age).
+- Per-driver drill-down into the same record the driver themself sees
+  (same events, same score, same timeline) — this must mirror the driver
+  app's data exactly, not a separately-computed summary, so a coaching
+  conversation references numbers the driver recognizes.
+- Fleet-level filtering/sorting to surface "which drivers/regions need
+  intervention."
+
+**Insurer claims processor view:**
+- Incident-level export for a specific confirmed (non-cancelled) crash
+  event: timestamp, severity score, GPS coordinates, which sensors
+  confirmed it (fusion trail per ADR-4), and whether SOS was sent or
+  cancelled. Framed explicitly as claims support, not a general safety
+  score view — this is a distinct, sellable capability in its own right.
+
+**Customer support view:**
+- Device health only (battery, firmware, last sync, calibration age) for a
+  specific device, scoped so support cannot see that driver's safety score
+  or event history to do their job.
+
+**[LOCKED — needs governance sign-off before build, see `06_GOVERNANCE.md`]**
+Before any of these views ship, the policy question of what a fleet/platform
+is allowed to *do* with a driver's safety score or a flagged pre-ride check
+(coaching only vs. disciplinary/deactivation use) must be documented and
+agreed with the first pilot partner. Do not treat this as a UI-only
+feature — the access model and the usage policy are both requirements.
+
+### 4.4a Continuous data flywheel [NEW — critical for pilot credibility]
+
+The 10-second SOS cancel/confirm window (§4.1) is currently designed purely
+as a false-alarm mitigation UX pattern. It is also, structurally, a live
+source of driver-confirmed ground-truth labels (confirmed crash, cancelled/
+false-positive, with the driver's own annotation e.g. "pothole") at the
+exact moment ground truth is freshest.
+
+**Requirement:** every confirm/cancel interaction must be captured as a
+structured, labeled record and fed back into the ML retraining pipeline
+(`ml/`), not just logged as a driver-facing app event. This turns "collect
+real data" (the #1 open risk in §7) from a one-time pre-pilot hurdle into an
+ongoing loop that keeps improving during and after the pilot — which is
+also the actual defensible moat against a same-year competitor like AVRO
+Helmets, who can copy the sensor list in a quarter but not months of
+driver-confirmed field labels.
+
+This requires its own explicit driver consent/disclosure, separate from the
+core safety-feature consent — see `06_GOVERNANCE.md`.
 
 ### 4.5 Business / go-to-market requirements
+
+**Revenue model [OPEN DECISION — resolve before first pilot pricing
+conversation]:** not yet decided between (a) one-time hardware sale to
+fleets, (b) a lease model, or (c) a lower-upfront-cost device paired with a
+per-driver monthly subscription for the safety-analytics/Fleet-Ops-Dashboard
+layer. Working hypothesis to validate, not a locked decision: **(c)**,
+because it funds the continuous retraining loop in §4.4a on an ongoing
+basis, aligns revenue with what an insurer actually wants (reduced claims,
+not device count), and gives a natural expansion path into the Fleet-Ops
+Dashboard once it's built. State this hypothesis explicitly in the first
+pilot conversation rather than deferring the pricing question — "we haven't
+decided" is a weaker position than a stated, revisable hypothesis.
+
+**Future data product — hazard/hotspot mapping (explicitly NOT general
+traffic prediction) [OPEN, longer-term, do not build now]:** aggregated
+harsh-braking/near-miss/crash event locations could be packaged as a
+road-safety hazard map — "which intersections produce the most dangerous
+events" — sold to municipal road-safety authorities, urban planners, or
+insurers for location-based risk pricing. This is explicitly **not** a
+general traffic-flow/congestion prediction product: that market (INRIX,
+HERE, TomTom, and ultimately Google/Waze) is saturated by incumbents
+running tens-of-millions-of-vehicle crowd-sourced GPS-speed networks, and
+this project's helmet accel/gyro signal adds nothing over the phone-GPS
+speed data those incumbents already have at far greater scale. Do not
+pursue general traffic prediction. The hazard-mapping angle is viable only
+because it's a different signal (danger events tied to location, not
+traffic speed/volume) that those incumbents don't optimize for — but it
+requires its own third-party data-sharing consent path (see
+`06_GOVERNANCE.md`) and should not be pursued before Phase 6 (pilot) has
+produced enough location-dense event data to make a hazard map credible.
+See `04_PHASES.md` for sequencing.
 
 - Pilot-first rollout: a smaller partner (regional fleet-leasing company,
   city-level delivery aggregator, or an insurer underwriting gig-driver
@@ -179,3 +273,13 @@ breakdown these map to:
    hygiene), not just a wiring task.
 4. **No pilot partner identified or approached.** The GTM path is defined but
    has zero real-world traction; this can run in parallel with hardware work.
+5. **No data-use/consent governance policy exists yet.** What a fleet or
+   platform is allowed to do with a driver's safety score or a flagged
+   pre-ride check (coaching vs. disciplinary use) is undecided. This is a
+   commercial risk, not just an ethical one: if the first real-world story
+   to reach drivers is "the helmet got someone fired," it inverts the
+   driver-welfare narrative this whole GTM strategy depends on. See
+   `06_GOVERNANCE.md` — must be resolved with the first pilot partner,
+   before that pilot's contract is signed, not during it.
+6. **Revenue model undecided.** See §4.5 — a stated hypothesis exists
+   (device + subscription) but is unvalidated.

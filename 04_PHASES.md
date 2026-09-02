@@ -19,12 +19,15 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
 | Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
-| Software & App | Fleet-ops / platform dashboard | Concept | Metrics defined (safety, compliance, risk, fatigue, device health) — no UI or backend built |
+| Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
 | Software & App | BLE data pipeline (helmet ↔ app) | Design | Architecture defined — no firmware/app code written yet |
+| Firmware & Intelligence | Continuous data flywheel (confirm/cancel → retraining) | Design | Architecture defined (ADR-6) — depends on Phase 2 hardware and a consent flow (`06_GOVERNANCE.md`) before going live |
 | Business & Market | Market & competitive landscape | Validated | Zomato, Rapido, Ola, AVRO Helmets mapped; differentiation identified |
 | Business & Market | B2B2C GTM strategy | Design | Path defined (fleet-leasing/insurer pilot before platform HQ) — no partner conversations started |
 | Business & Market | Pilot partner (fleet/insurer) | **Not started** | Not yet identified or approached |
 | Business & Market | Regulatory strategy (ETA/telecom) | Design | BLE-only architecture avoids ETA certification requirement by design |
+| Business & Market | Data-use / consent governance policy | **Not started** | Coaching-vs-disciplinary use of safety scores, driver consent for the retraining flywheel, and third-party data sharing all undocumented — see `06_GOVERNANCE.md` |
+| Business & Market | Revenue model | **Not started** | Hypothesis stated (device + subscription, `01_REQUIREMENTS.md` §4.5) but unvalidated |
 
 **Note on the ML pipeline:** a working, testable *scaffolding* now exists
 (`generate_synthetic_data.py` → `features.py` → `train_model.py`,
@@ -45,6 +48,11 @@ real or controlled-drop-test data is used.
    wiring task.
 4. **Pilot partner outreach.** The GTM path is defined but has zero real-
    world traction; this can start in parallel with hardware work, not after.
+5. **Data-use governance policy.** Must be drafted and agreed with the first
+   pilot partner *before* that pilot's contract is signed — not during or
+   after. This gates both the confirm/cancel retraining flywheel (ADR-6)
+   and any Fleet-Ops Dashboard feature that exposes a driver's score to a
+   fleet/insurer. See `06_GOVERNANCE.md`.
 
 ## Phase plan
 
@@ -107,15 +115,23 @@ a working pre-ride check-in flow on real hardware.
 **Exit criteria:** the app mockup screens are backed by real device data and
 a real (not simulated) SOS path, tested end-to-end.
 
-### Phase 5 — Fleet-ops dashboard
-- Design and build the dashboard against the five metric families already
-  defined (safety, compliance, risk, fatigue, device health).
+### Phase 5 — Fleet-Ops Dashboard
+- Build against the now-complete spec in `05_DESIGN.md` §3: the three
+  role-scoped views (fleet ops manager, insurer claims processor, customer
+  support), backed by the access model in `02_ARCHITECTURE.md` §7.
+- **Blocked on the governance policy (critical path #5) landing first** for
+  the fleet-ops manager's driver drill-down and any score-visibility
+  feature — the UI can be built in parallel, but must not go live with real
+  driver data until the coaching-vs-disciplinary policy is signed off.
 - Deliberately sequenced after the driver-facing app has real data —
   building fleet aggregation before there's real per-driver data to
   aggregate is wasted work.
 
-**Exit criteria:** a fleet-ops user can see aggregate safety/compliance/
-risk/fatigue/device-health metrics from real pilot devices.
+**Exit criteria:** a fleet-ops manager can see aggregate metrics and drill
+into a real driver's record; an insurer can pull a real incident export;
+support can look up real device health — each scoped per
+`02_ARCHITECTURE.md` §7, and the governance policy is signed off before any
+of this touches real driver data.
 
 ### Phase 6 — Pilot
 - Approach a first partner: regional fleet-leasing company, city-level

@@ -36,6 +36,18 @@ silently:
 - **BOM/cost targets** in `01_REQUIREMENTS.md` §5. If an implementation
   choice would break the cost target, say so explicitly rather than quietly
   picking a pricier component.
+- **Fleet/insurer use of a driver's safety score or flagged pre-ride
+  check.** Whether this data can factor into disciplinary action,
+  deactivation, or individual insurance pricing is an unresolved policy
+  question (`01_REQUIREMENTS.md` §4.4, `06_GOVERNANCE.md`). Do not build a
+  feature that exposes this data to a fleet/insurer for action-taking
+  purposes until that policy is documented and agreed with the pilot
+  partner.
+- **Sharing location-derived event data with any third party** (a
+  municipality, an insurer other than the one who deployed the device, a
+  future hazard-mapping product per `01_REQUIREMENTS.md` §4.5). This needs
+  its own consent path, separate from core safety-feature consent — see
+  `06_GOVERNANCE.md`. Never wire up a new data consumer without one.
 
 ## 2. Safety-critical engineering rules
 
@@ -67,6 +79,20 @@ silently:
 - Report both aggregate accuracy **and** crash-class false-negative/false-
   positive rates for every model evaluation. Aggregate accuracy alone is
   not an acceptable report for this project (see `01_REQUIREMENTS.md` §4.3).
+
+## 3a. Access control rules
+
+- Enforce the permission tiers in `02_ARCHITECTURE.md` §7 as backend query
+  scopes, not frontend show/hide. A support-agent API token must be
+  incapable of returning safety-score or event-history data, structurally —
+  not just have a UI that doesn't display it.
+- The Fleet-Ops Dashboard's per-driver drill-down must read from the same
+  event records the driver's own app shows — never a separately-computed
+  summary that could drift from what the driver sees.
+- Every new consumer of driver data (a new dashboard view, a new export, a
+  new downstream product) needs an explicit row in the access-model table
+  and its own consent path before it gets a live data feed. See
+  `06_GOVERNANCE.md`.
 
 ## 4. Code organization rules
 
