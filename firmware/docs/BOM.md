@@ -71,6 +71,9 @@ already handles that.
 
 ## 4. Assembly
 
+See [`wiring-diagram.svg`](wiring-diagram.svg) for the whole circuit at a
+glance; the per-subsystem steps below have the detail.
+
 Breadboard layout. **One common ground** for everything. Board powered by
 USB during bring-up.
 

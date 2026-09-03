@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" font-family="'IBM Plex Mono', ui-monospace, monospace" style="color:#1b2430;background:#ffffff" role="img" aria-label="Wiring diagram: ESP32 DevKit to MPU6050 over I2C on GPIO21/22, clamped piezo on GPIO34, FSR divider on GPIO35, panic button on GPIO25, cancel button on GPIO26, buzzer on GPIO27, onboard LED on GPIO2; 3V3 and GND on the breadboard rails.">
+  <!-- Life Catcher smart helmet - Phase 2 breadboard wiring. Mirrors firmware/include/pins.h. -->
+  <!-- power rails -->
+  <line x1="842" y1="112" x2="842" y2="668" stroke="#7b8794" stroke-width="3"/>
+  <line x1="858" y1="112" x2="858" y2="668" stroke="#d83a45" stroke-width="3"/>
+  <line x1="834" y1="112" x2="850" y2="112" stroke="#7b8794" stroke-width="3"/>
+  <line x1="850" y1="112" x2="866" y2="112" stroke="#d83a45" stroke-width="3"/>
+  <text x="828" y="392" transform="rotate(-90 828 392)" text-anchor="middle" fill="#7b8794" font-size="10.5">GND rail  (breadboard -)</text>
+  <text x="874" y="392" transform="rotate(-90 874 392)" text-anchor="middle" fill="#d83a45" font-size="10.5">3V3 rail  (breadboard +)</text>
+
+  <!-- ESP32 -->
+  <text x="125" y="102" text-anchor="middle" fill="currentColor" font-size="12" font-weight="500">ESP32-WROOM-32 . DevKit v1</text>
+  <rect x="40" y="120" width="170" height="450" rx="10" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="55" y="146" fill="#5c6672" font-size="9">3.3 V logic . USB power</text>
+
+  <line x1="210" y1="150" x2="230" y2="150" stroke="#d83a45" stroke-width="2"/>
+  <text x="200" y="154" text-anchor="end" fill="currentColor" font-size="11">3V3</text>
+  <line x1="210" y1="188" x2="230" y2="188" stroke="#7b8794" stroke-width="2"/>
+  <text x="200" y="192" text-anchor="end" fill="currentColor" font-size="11">GND</text>
+  <g font-size="11" fill="currentColor" text-anchor="end">
+    <text x="200" y="230">GPIO21</text><text x="200" y="268">GPIO22</text><text x="200" y="306">GPIO4</text>
+    <text x="200" y="344">GPIO34</text><text x="200" y="382">GPIO35</text><text x="200" y="420">GPIO25</text>
+    <text x="200" y="458">GPIO26</text><text x="200" y="496">GPIO27</text><text x="200" y="534">GPIO2</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.4">
+    <line x1="210" y1="226" x2="230" y2="226"/><line x1="210" y1="264" x2="230" y2="264"/><line x1="210" y1="302" x2="230" y2="302"/>
+    <line x1="210" y1="340" x2="230" y2="340"/><line x1="210" y1="378" x2="230" y2="378"/><line x1="210" y1="416" x2="230" y2="416"/>
+    <line x1="210" y1="454" x2="230" y2="454"/><line x1="210" y1="492" x2="230" y2="492"/><line x1="210" y1="530" x2="230" y2="530"/>
+  </g>
+  <text x="236" y="533" fill="#5c6672" font-family="sans-serif" font-size="9.5" font-style="italic">-&gt; onboard LED (no wiring)</text>
+
+  <path d="M230,150 H244 V114 H858" fill="none" stroke="#d83a45" stroke-width="2"/>
+  <path d="M230,188 H256 V126 H842" fill="none" stroke="#7b8794" stroke-width="2"/>
+  <text x="248" y="146" fill="#d83a45" font-size="9">3V3</text>
+  <text x="262" y="176" fill="#7b8794" font-size="9">GND</text>
+
+  <!-- signal wires -->
+  <path d="M230,226 H250 V192 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <path d="M230,264 H262 V214 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <path d="M230,302 H274 V236 H418" fill="none" stroke="#3b82f6" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M230,340 H286 V317 H418" fill="none" stroke="#1a9d5a" stroke-width="1.8"/>
+  <path d="M230,378 H298 V413 H418" fill="none" stroke="#1a9d5a" stroke-width="1.8"/>
+  <path d="M230,416 H310 V496 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <path d="M230,454 H322 V566 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <path d="M230,492 H334 V638 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <g font-size="9.5" text-anchor="end">
+    <text x="414" y="188" fill="#3b82f6">21</text><text x="414" y="210" fill="#3b82f6">22</text><text x="414" y="232" fill="#3b82f6">4</text>
+    <text x="414" y="313" fill="#1a9d5a">34</text><text x="414" y="409" fill="#1a9d5a">35</text>
+    <text x="414" y="492" fill="#3b82f6">25</text><text x="414" y="562" fill="#3b82f6">26</text><text x="414" y="634" fill="#3b82f6">27</text>
+  </g>
+
+  <!-- MPU6050 -->
+  <rect x="430" y="150" width="380" height="110" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="171" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">MPU6050 . accel + gyro (I2C)</text>
+  <text x="444" y="186" fill="#5c6672" font-family="sans-serif" font-size="10">GY-521 breakout . AD0 -&gt; GND sets addr 0x68</text>
+  <g font-size="10.5" fill="currentColor">
+    <line x1="418" y1="192" x2="430" y2="192" stroke="#3b82f6" stroke-width="1.8"/><text x="436" y="196">SDA</text>
+    <line x1="418" y1="214" x2="430" y2="214" stroke="#3b82f6" stroke-width="1.8"/><text x="436" y="218">SCL</text>
+    <line x1="418" y1="236" x2="430" y2="236" stroke="#3b82f6" stroke-width="1.6" stroke-dasharray="5 4"/><text x="436" y="240">INT</text>
+    <text x="790" y="184" text-anchor="end">VCC</text><circle cx="800" cy="180" r="3.2" fill="#d83a45"/>
+    <text x="790" y="212" text-anchor="end">GND</text><circle cx="800" cy="208" r="3.2" fill="#7b8794"/>
+  </g>
+  <path d="M810,180 H858" stroke="#d83a45" stroke-width="1.8" fill="none"/>
+  <path d="M810,208 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <!-- Piezo -->
+  <rect x="430" y="278" width="380" height="78" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="299" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">Piezo disc . impact confirm</text>
+  <text x="444" y="314" fill="#5c6672" font-family="sans-serif" font-size="10">via 1 MOhm + 2x Schottky clamp</text>
+  <g font-size="10.5" fill="currentColor">
+    <line x1="418" y1="317" x2="430" y2="317" stroke="#1a9d5a" stroke-width="1.8"/><text x="436" y="343">clamp node -&gt; ADC1</text>
+    <text x="790" y="304" text-anchor="end">3V3</text><circle cx="800" cy="300" r="3.2" fill="#d83a45"/>
+    <text x="790" y="338" text-anchor="end">GND</text><circle cx="800" cy="334" r="3.2" fill="#7b8794"/>
+  </g>
+  <path d="M810,300 H858" stroke="#d83a45" stroke-width="1.8" fill="none"/>
+  <path d="M810,334 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <!-- FSR -->
+  <rect x="430" y="374" width="380" height="78" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="395" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">FSR . helmet-worn detect</text>
+  <text x="444" y="410" fill="#5c6672" font-family="sans-serif" font-size="10">divider: 3V3 - FSR - node - 10k - GND</text>
+  <g font-size="10.5" fill="currentColor">
+    <line x1="418" y1="413" x2="430" y2="413" stroke="#1a9d5a" stroke-width="1.8"/><text x="436" y="439">divider node -&gt; ADC1</text>
+    <text x="790" y="400" text-anchor="end">3V3</text><circle cx="800" cy="396" r="3.2" fill="#d83a45"/>
+    <text x="790" y="434" text-anchor="end">GND</text><circle cx="800" cy="430" r="3.2" fill="#7b8794"/>
+  </g>
+  <path d="M810,396 H858" stroke="#d83a45" stroke-width="1.8" fill="none"/>
+  <path d="M810,430 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <!-- Panic -->
+  <rect x="430" y="470" width="380" height="52" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="491" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">Panic button</text>
+  <text x="444" y="506" fill="#5c6672" font-family="sans-serif" font-size="10">momentary -&gt; GND . INPUT_PULLUP, pressed = LOW</text>
+  <line x1="418" y1="496" x2="430" y2="496" stroke="#3b82f6" stroke-width="1.8"/>
+  <text x="790" y="500" text-anchor="end" font-size="10.5" fill="currentColor">GND</text>
+  <circle cx="800" cy="496" r="3.2" fill="#7b8794"/>
+  <path d="M810,496 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <!-- Cancel -->
+  <rect x="430" y="540" width="380" height="52" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="561" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">Cancel / "I'm OK" button</text>
+  <text x="444" y="576" fill="#5c6672" font-family="sans-serif" font-size="10">momentary -&gt; GND . stops a false SOS in the 10 s window</text>
+  <line x1="418" y1="566" x2="430" y2="566" stroke="#3b82f6" stroke-width="1.8"/>
+  <text x="790" y="570" text-anchor="end" font-size="10.5" fill="currentColor">GND</text>
+  <circle cx="800" cy="566" r="3.2" fill="#7b8794"/>
+  <path d="M810,566 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <!-- Buzzer -->
+  <rect x="430" y="610" width="380" height="58" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="631" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">Buzzer . active module</text>
+  <text x="444" y="646" fill="#5c6672" font-family="sans-serif" font-size="10">bare passive element -&gt; drive via a transistor (BOM 4.6)</text>
+  <g font-size="10.5" fill="currentColor">
+    <line x1="418" y1="638" x2="430" y2="638" stroke="#3b82f6" stroke-width="1.8"/><text x="436" y="642">I/O</text>
+    <text x="790" y="626" text-anchor="end">V+</text><circle cx="800" cy="622" r="3.2" fill="#d83a45"/>
+    <text x="790" y="656" text-anchor="end">GND</text><circle cx="800" cy="652" r="3.2" fill="#7b8794"/>
+  </g>
+  <path d="M810,622 H858" stroke="#d83a45" stroke-width="1.8" fill="none"/>
+  <path d="M810,652 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <g fill="#d83a45">
+    <circle cx="858" cy="114" r="2.6"/><circle cx="858" cy="180" r="2.6"/><circle cx="858" cy="300" r="2.6"/><circle cx="858" cy="396" r="2.6"/><circle cx="858" cy="622" r="2.6"/>
+  </g>
+  <g fill="#7b8794">
+    <circle cx="842" cy="126" r="2.6"/><circle cx="842" cy="208" r="2.6"/><circle cx="842" cy="334" r="2.6"/><circle cx="842" cy="430" r="2.6"/><circle cx="842" cy="496" r="2.6"/><circle cx="842" cy="566" r="2.6"/><circle cx="842" cy="652" r="2.6"/>
+  </g>
+
+  <!-- legend -->
+  <g font-size="10" fill="currentColor" font-family="sans-serif">
+    <line x1="48" y1="600" x2="72" y2="600" stroke="#3b82f6" stroke-width="3"/><text x="78" y="604">digital (GPIO)</text>
+    <line x1="48" y1="620" x2="72" y2="620" stroke="#1a9d5a" stroke-width="3"/><text x="78" y="624">analog . ADC1 input</text>
+    <line x1="48" y1="640" x2="72" y2="640" stroke="#d83a45" stroke-width="3"/><text x="78" y="644">3V3 power</text>
+    <line x1="48" y1="660" x2="72" y2="660" stroke="#7b8794" stroke-width="3"/><text x="78" y="664">GND</text>
+    <line x1="240" y1="600" x2="264" y2="600" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5 4"/><text x="270" y="604">optional connection</text>
+    <circle cx="252" cy="620" r="3.4" fill="#7b8794"/><text x="270" y="624">joined (crossings are not)</text>
+  </g>
+</svg>
