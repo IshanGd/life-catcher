@@ -81,10 +81,11 @@ Limitations: Wokwi's BLE is partial — you can see it advertise, but pairing a
 real phone is unreliable. Use the desktop sim (1) for the BLE contract and
 Wokwi for the sensor/pin wiring feel.
 
-### 3. Real hardware — ~₹1,200–1,800 of parts
+### 3. Real hardware — ~₹800–1,800 of parts
 
-ESP32 DevKit, GY-521 (MPU6050), a piezo disc, an FSR (or a spare button to
-fake it), 2 tactile buttons, an active buzzer, a breadboard. Wiring in
+Full parts list (with India sourcing + prices), a "minimum to start today"
+subset, and a step-by-step breadboard walkthrough are in
+[`docs/BOM.md`](docs/BOM.md); the pin reference is
 [`docs/WIRING.md`](docs/WIRING.md). This is the actual Phase 2 exit —
 simulation can't validate mounting, vibration, battery life, or BLE range.
 

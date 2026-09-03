@@ -1,5 +1,8 @@
 # Phase 2 prototype — wiring
 
+**Parts list + full assembly walkthrough: [`BOM.md`](BOM.md).** This file is
+the quick pin reference.
+
 Reference board: **generic ESP32 DevKit v1 (30-pin)**. Pin numbers are GPIO
 numbers and live in [`../include/pins.h`](../include/pins.h) — edit there if
 your board differs, keep this table in sync.
