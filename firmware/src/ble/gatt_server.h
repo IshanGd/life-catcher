@@ -4,11 +4,15 @@
 //   Service  6e40-0001-...   "Smart Helmet"
 //     char   6e40-0002-...   STATUS   notify + read   (JSON StatusPayload)
 //     char   6e40-0003-...   EVENT    notify + read   (JSON EventPayload)
-//     char   6e40-0004-...   COMMAND  write           {"cmd":"cancel"|"ack"}
+//     char   6e40-0004-...   COMMAND  write     {"cmd":"cancel"|"ack"|"start_check"}
 //
 // The COMMAND char lets the app offer an on-screen cancel *in addition to*
 // the physical button. It is still a driver-initiated cancel inside the
 // window — it does not shorten or skip the window (03_RULES.md §1).
+//
+// "start_check" begins the Phase 3 alcohol pre-ride check-in
+// (core/preride_check.h) -- the app sends this post helmet-donning, before
+// it lets the driver go online (ADR-5).
 #pragma once
 
 #include <functional>
@@ -18,7 +22,7 @@
 
 namespace helmet::ble {
 
-enum class AppCommand { kNone, kCancel, kAck };
+enum class AppCommand { kNone, kCancel, kAck, kStartPreRideCheck };
 
 class GattServer {
  public:

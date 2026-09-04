@@ -69,6 +69,21 @@ void test_fusion_confirmed_predicate() {
   TEST_ASSERT_TRUE(IsFusionConfirmed(kSrcMpu6050 | kSrcPiezo | kSrcFsr));
 }
 
+// Phase 3 (ADR-5): a failed pre-ride check serialises as a single-shot
+// alcohol_flag event with the mq3 source, no confirm/cancel lifecycle.
+void test_alcohol_flag_event_shape() {
+  EventPayload e;
+  e.event_type = EventType::kAlcoholFlag;
+  e.confirmed_by = kSrcMq3;
+  e.timestamp_device_ms = 42;
+  std::string j = Serialize(e);
+
+  TEST_ASSERT_TRUE(has(j, "\"event_type\":\"alcohol_flag\""));
+  TEST_ASSERT_TRUE(has(j, "\"confirmed_by\":[\"mq3\"]"));
+  TEST_ASSERT_TRUE(has(j, "\"awaiting_cancel\":false"));
+  TEST_ASSERT_TRUE(has(j, "\"confirmed\":false"));
+}
+
 void test_cancelled_event_carries_reason() {
   EventPayload e;
   e.event_type = EventType::kCrashImpact;
@@ -86,6 +101,7 @@ int main(int, char**) {
   RUN_TEST(test_event_type_strings_match_ml_label_set);
   RUN_TEST(test_crash_event_lists_both_sensors);
   RUN_TEST(test_fusion_confirmed_predicate);
+  RUN_TEST(test_alcohol_flag_event_shape);
   RUN_TEST(test_cancelled_event_carries_reason);
   return UNITY_END();
 }

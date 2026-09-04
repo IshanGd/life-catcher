@@ -227,6 +227,19 @@ minimal shapes above:
 These are additive, so `schema` stays `1`. The next **breaking** change
 (removed/renamed/retyped field) bumps it to `2` and is recorded here.
 
+### Phase 3 additions (also additive)
+
+- **`confirmed_by: ["mq3"]`** on an `alcohol_flag` event
+  (`firmware/src/core/preride_check.*`) — a single-sensor source by design
+  (ADR-5 makes this a gate, not a fusion-confirmed emergency; it is never
+  routed through the SOS confirm/cancel/dispatch lifecycle, so
+  `awaiting_cancel`/`cancelled`/`confirmed` stay `false` on this event type).
+- **`{"cmd":"start_check"}`** on the COMMAND characteristic — the app sends
+  this post helmet-donning, before letting the driver go online, to start
+  the pre-ride check-in.
+- `pre_ride_passed` in `StatusPayload` now reflects the real check result
+  instead of the Phase 2 stub.
+
 ## 5. Companion app data flow
 
 The app's `HelmetDataService` (or equivalent) is the **single seam** between

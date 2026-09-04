@@ -37,3 +37,11 @@ static constexpr int PIN_LINK_LED = 2;          // onboard LED on most DevKits
 // --- Battery sense (divider from VBAT); optional on first bring-up -----
 static constexpr int PIN_VBAT_ADC = 32;         // ADC1_CH4
 static constexpr float VBAT_DIVIDER_RATIO = 2.0f;
+
+// --- MQ-3 alcohol sensor (Phase 3, gated pre-ride check only, ADR-5) ----
+// Analog output straight into an ADC1 pin (the module has its own onboard
+// load resistor). The heater (~150 mA) is switched by a transistor under
+// GPIO control so it draws nothing between checks -- an ESP32 GPIO can't
+// source that much current directly. See firmware/docs/WIRING.md.
+static constexpr int PIN_MQ3_ADC       = 36;    // input-only, ADC1_CH0 (SVP)
+static constexpr int PIN_MQ3_HEATER_EN = 23;    // drives heater switch transistor

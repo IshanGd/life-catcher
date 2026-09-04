@@ -95,6 +95,8 @@ void GattServer::OnCommandWrite(const std::string& json, uint32_t now_ms) {
   last_seen_ms_ = now_ms;
   if (json.find("\"cancel\"") != std::string::npos)   pending_cmd_ = AppCommand::kCancel;
   else if (json.find("\"ack\"") != std::string::npos) pending_cmd_ = AppCommand::kAck;
+  else if (json.find("\"start_check\"") != std::string::npos)
+    pending_cmd_ = AppCommand::kStartPreRideCheck;
 }
 
 }  // namespace helmet::ble

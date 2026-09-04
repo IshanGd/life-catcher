@@ -13,7 +13,7 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Hardware & Sensors | FSR wear detection | Design | Driver written with hysteresis (`firmware/src/sensors/fsr_wear.h`) — placement/thresholds TBD on hardware |
 | Hardware & Sensors | ESP32 + BLE architecture | Design | NimBLE GATT server written (`firmware/src/ble/`), versioned schema — not yet compiled/flashed |
 | Hardware & Sensors | Panic / SOS button | Design | Driver + SOS trigger path written & host-tested — ready to flash + wire first (Phase 2 bring-up step 1) |
-| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Design | Phase 3 — deliberately absent from the Phase 2 firmware build |
+| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Prototype (firmware side) | Driver + per-unit calibration store + pre-ride check-in state machine written & host-tested (`firmware/src/{sensors/mq3_*,core/preride_check.*,core/mq3_calibration.h}`) — not yet run on a physical MQ-3. **Breath-sampling chamber (mouthpiece/hygiene) is still an unresolved physical-design question, not a wiring task.** |
 | Hardware & Sensors | Cancel/confirm buzzer + UX | Design | Buzzer driver + the 10 s cancel-window state machine written & host-tested (`firmware/src/core/sos_state_machine.*`) |
 | Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | `ml/` runs end-to-end on synthetic **and** real data; group-aware out-of-fold evaluation; reports crash-class FN/FP per `03_RULES.md` §3; 8 smoke tests |
 | Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO loaded & verified (`ml/loaders/damoto.py`); first non-synthetic run done — 0% missed / 0% false-alarm on crash, group-aware, BUT only 4 fall events, all ~90 km/h full-rotation track falls with saturated sensors → **not a field-accuracy result** (`ml/README.md` §Results). Still needed: low-speed tip-over data, real Indian-road pothole data, controlled drop-tests (Phase 2). |
@@ -22,7 +22,7 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
 | Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
 | Software & App | BLE data pipeline (helmet ↔ app) | Prototype (firmware side) | Firmware side written: `firmware/src/core/ble_schema.*` (versioned JSON, host-tested) + NimBLE GATT server + `tools/ble_probe.py` desktop client. App side still not started. |
-| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` — safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + BLE schema **compiled & host-tested green (22/22, GCC 16)**. Desktop sim runs the real core on the DAMOTO windows: 8 crash SOS, 0 false alarms on 162 non-crash windows. ESP32 build (sensors/BLE) not yet compiled; no hardware. Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
+| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` — safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + BLE schema + Phase 3 pre-ride check-in **compiled & host-tested green (32/32, GCC 16)**. Desktop sim runs the real core on the DAMOTO windows: 8 crash SOS, 0 false alarms on 162 non-crash windows (IMU/piezo path only — the sim doesn't exercise the alcohol check). ESP32 build (sensors/BLE) not yet compiled; no hardware. Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
 | Firmware & Intelligence | Continuous data flywheel (confirm/cancel → retraining) | Design | Architecture defined (ADR-6) — depends on Phase 2 hardware and a consent flow (`06_GOVERNANCE.md`) before going live |
 | Business & Market | Market & competitive landscape | Validated | Zomato, Rapido, Ola, AVRO Helmets mapped; differentiation identified |
 | Business & Market | B2B2C GTM strategy | Design | Path defined (fleet-leasing/insurer pilot before platform HQ) — no partner conversations started |
@@ -150,13 +150,48 @@ Panic-button behaviour: **decided** — same 10 s window + buzzer as a crash
 over BLE to a test harness or the app.
 
 ### Phase 3 — Alcohol sensor integration
+
+**Firmware side — done (in repo, `firmware/`), not yet run on real MQ-3 hardware:**
+- `core::AlcoholCalibration` + `ICalibrationStore` (`src/core/alcohol_calibration.h`):
+  the per-unit clean-air baseline, never a firmware constant (03_RULES §2).
+  NVS-backed on the ESP32 target (`src/sensors/mq3_calibration_store.h`).
+- `core::Mq3CalibrationRoutine` (`src/core/mq3_calibration.h`): the
+  assembly-line calibration step — warm up, average a clean-air reading,
+  produce a baseline. Triggered today over serial (`CAL`); see
+  `firmware/docs/WIRING.md` "Per-unit calibration."
+- `core::PreRideCheckStateMachine` (`src/core/preride_check.*`, host-tested,
+  9 tests green): the check-in flow itself — warm up, sample, compare
+  against the unit's baseline, pass/fail. A fail emits one `alcohol_flag`
+  BLE event; it is a screening gate, not an SOS (ADR-5) — never routed
+  through `SosStateMachine`, and there is no code path from this result to
+  vehicle ignition (03_RULES §1).
+- `sensors::Mq3Alcohol` driver (`src/sensors/mq3_alcohol.h`): analog read +
+  heater power-gating (heater only on during a check/calibration, to save
+  battery between rides).
+- BLE contract extended (additive, `schema` stays `1`): `{"cmd":"start_check"}`
+  starts a check-in; `alcohol_flag` events carry `confirmed_by:["mq3"]`;
+  `StatusPayload.pre_ride_passed` now reflects the real result
+  (`02_ARCHITECTURE.md` §4 "Phase 3 additions").
+- Warm-up duration and the pass/fail ratio (`cfg::mq3` in
+  `include/build_config.h`) are **PROVISIONAL**, same caveat as
+  `crash_fusion.cpp`'s thresholds — placeholders to bring the flow up
+  end-to-end, not tuned against a real MQ-3 yet.
+
+**Still to do (needs physical hardware):**
 - Design and prototype the enclosed breath-sampling chamber (mouthpiece,
-  hygiene handling) — the unresolved physical-design piece.
-- Implement the pre-ride "check-in" gate flow (post-donning, pre-"go
-  online") and per-unit calibration step.
+  hygiene handling) — the unresolved physical-design piece; nothing in the
+  firmware above depends on this being solved first.
+- Wire a real MQ-3, run `CAL` for a first live per-unit baseline, and
+  re-tune `cfg::mq3::kWarmupMs` / `kAlcoholRatioThreshold` against known
+  clean vs. alcohol-dosed breath samples.
+- `pio run -e esp32dev` needs to actually succeed with the MQ-3 driver
+  compiled in (untried — see `firmware/README.md` "Compile status").
 
 **Exit criteria:** a repeatable, documented per-unit calibration process and
-a working pre-ride check-in flow on real hardware.
+a working pre-ride check-in flow on real hardware. The calibration process
+and check-in flow are implemented and documented; "on real hardware" is
+still open, gated on a physical MQ-3 (not the breath chamber, which can lag
+behind — see `firmware/docs/BOM.md` §"MQ-3 (Phase 3)").
 
 ### Phase 4 — Companion app: real functionality
 - Replace the mockup's sample data with the live BLE pipeline from Phase 2,

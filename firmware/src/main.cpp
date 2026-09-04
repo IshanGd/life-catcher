@@ -12,16 +12,21 @@
 
 #include "ble/gatt_server.h"
 #include "build_config.h"
+#include "core/alcohol_calibration.h"
 #include "core/ble_schema.h"
 #include "core/crash_fusion.h"
 #include "core/imu_window.h"
 #include "core/link_monitor.h"
+#include "core/mq3_calibration.h"
+#include "core/preride_check.h"
 #include "core/sos_state_machine.h"
 #include "pins.h"
 #include "sensors/buzzer.h"
 #include "sensors/cancel_button.h"
 #include "sensors/fsr_wear.h"
 #include "sensors/imu_mpu6050.h"
+#include "sensors/mq3_alcohol.h"
+#include "sensors/mq3_calibration_store.h"
 #include "sensors/panic_button.h"
 #include "sensors/piezo.h"
 
@@ -35,10 +40,15 @@ sensors::FsrWear    g_fsr;
 sensors::PanicButton g_panic;
 sensors::CancelButton g_cancel;
 sensors::Buzzer    g_buzzer;
+sensors::Mq3Alcohol g_mq3;
+sensors::Mq3CalibrationStore g_mq3_store;
 
 core::ImuWindow        g_window;
 core::SosStateMachine  g_sos;
 core::LinkMonitor      g_link;
+core::PreRideCheckStateMachine g_preride;
+core::Mq3CalibrationRoutine    g_mq3_cal;
+core::AlcoholCalibration       g_alcohol_calib;
 ble::GattServer        g_ble;
 
 uint32_t g_last_status_ms = 0;
@@ -61,7 +71,7 @@ int BatteryPct() {
 void PublishStatus(uint32_t now) {
   schema::StatusPayload s;
   s.helmet_worn     = g_fsr.Worn();
-  s.pre_ride_passed = false;                 // Phase 3 (alcohol pre-ride gate)
+  s.pre_ride_passed = g_preride.passed();    // Phase 3 (alcohol pre-ride gate)
   s.battery_pct     = BatteryPct();
   s.ble_link        = g_ble.connected();
   g_ble.PublishStatus(s);
@@ -76,6 +86,54 @@ void DrainSosEvents() {
                   schema::ToString(e.event_type), e.awaiting_cancel,
                   e.cancelled, e.confirmed, e.severity_score);
   }
+}
+
+// Not an SOS: a failed pre-ride check is a single logged flag, never routed
+// through g_sos (ADR-5 -- a gate, not a fusion-confirmed emergency).
+void DrainPrerideEvents() {
+  schema::EventPayload e;
+  while (g_preride.PopOutgoing(e)) {
+    g_ble.PublishEvent(e);
+    Serial.printf("[ALC] alcohol_flag reading_adc=%d\n", g_preride.last_average_adc());
+  }
+}
+
+// Assembly-line calibration: send the line "CAL" over serial with the
+// sensor sitting in clean air. Documented in firmware/docs/WIRING.md
+// "Per-unit calibration" (03_RULES.md §2 -- this is what makes the
+// baseline a real per-unit artifact instead of a guessed constant).
+void PollSerialCalibrationTrigger(uint32_t now) {
+  if (!Serial.available()) return;
+  String line = Serial.readStringUntil('\n');
+  line.trim();
+  if (line != "CAL") return;
+  if (g_mq3_cal.InProgress() || g_preride.InProgress()) {
+    Serial.println("[CAL] busy -- a check or calibration is already running");
+    return;
+  }
+  Serial.println("[CAL] starting -- keep the sensor in clean air until it finishes");
+  g_mq3_cal.Start(now);
+}
+
+void UpdateMq3(uint32_t now) {
+  PollSerialCalibrationTrigger(now);
+
+  if (g_mq3_cal.InProgress()) {
+    g_mq3_cal.Tick(now);
+    g_mq3_cal.Feed(g_mq3.Read());
+    if (g_mq3_cal.Done()) {
+      g_alcohol_calib = g_mq3_cal.Result(now);
+      g_mq3_store.Save(g_alcohol_calib);
+      Serial.printf("[CAL] done: valid=%d baseline_adc=%d\n",
+                    g_alcohol_calib.valid, g_alcohol_calib.baseline_adc);
+    }
+  }
+
+  g_preride.Tick(now);
+  if (g_preride.InProgress()) g_preride.Feed(g_mq3.Read());
+  DrainPrerideEvents();
+
+  g_mq3.SetHeater(g_mq3_cal.InProgress() || g_preride.HeaterShouldBeOn());
 }
 
 void UpdateBuzzer(uint32_t now) {
@@ -106,9 +164,14 @@ void setup() {
   g_cancel.Begin(PIN_CANCEL_BTN);
   g_piezo.Begin(PIN_PIEZO_ADC);
   g_fsr.Begin(PIN_FSR_ADC);
+  g_mq3.Begin(PIN_MQ3_ADC, PIN_MQ3_HEATER_EN);
 
   g_imu_ok = g_imu.Begin(PIN_I2C_SDA, PIN_I2C_SCL, MPU6050_I2C_ADDR);
   Serial.printf("MPU6050: %s\n", g_imu_ok ? "ok" : "NOT FOUND");
+
+  g_alcohol_calib = g_mq3_store.Load();
+  Serial.printf("MQ-3 calibration: %s (send 'CAL' over serial to (re)calibrate)\n",
+                g_alcohol_calib.valid ? "loaded" : "NOT CALIBRATED");
 
   g_ble.Begin("SmartHelmet-0001");
   g_buzzer.Set(sensors::BuzzPattern::kSelfTest, millis());
@@ -121,6 +184,7 @@ void loop() {
   // --- sensor updates ------------------------------------------------
   g_piezo.Update(now);
   g_fsr.Update();
+  UpdateMq3(now);
 
   core::ImuSample s;
   if (g_imu_ok && g_imu.Read(s, now)) g_window.Push(s);
@@ -140,6 +204,12 @@ void loop() {
   switch (g_ble.TakeCommand()) {
     case ble::AppCommand::kCancel: g_sos.Cancel(now, "driver_app"); break;
     case ble::AppCommand::kAck:    g_sos.Acknowledge();            break;
+    case ble::AppCommand::kStartPreRideCheck:
+      if (!g_mq3_cal.InProgress()) {
+        Serial.println("[PRC] starting pre-ride check");
+        g_preride.Start(g_alcohol_calib, now);
+      }
+      break;
     default: break;
   }
 

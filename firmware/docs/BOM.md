@@ -244,3 +244,29 @@ Follow the bring-up order in [`WIRING.md`](WIRING.md) §"Bring-up order":
 panic button first, then MPU6050 + piezo fusion, then FSR, then BLE via
 `tools/ble_probe.py`. Before wiring anything, you can already run the logic
 against real data with `pio run -e sim` (see the firmware README).
+
+---
+
+## 7. Phase 3 (optional, later) — MQ-3 alcohol pre-ride check
+
+Not part of the Phase 2 bring-up. The firmware side (driver, per-unit
+calibration, check-in state machine) is written and host-tested — see
+[`../src/core/preride_check.h`](../src/core/preride_check.h) and
+[`WIRING.md`](WIRING.md) §"Alcohol pre-ride check". You don't need any of
+this to keep working on Phase 2; buy it when you're ready to bring the
+alcohol path up on real hardware.
+
+| # | Part | Spec | Qty | ~₹ | Notes |
+|---|------|------|-----|----|-------|
+| 12 | MQ-3 alcohol sensor module | Breakout with onboard load resistor + heater | 1 | 90–180 | Analog-out module, not the bare element. |
+| 13 | Small switch transistor | 2N2222 / BC547 (NPN) or a logic-level MOSFET (2N7000) | 1 | 5–15 | Switches the ~150 mA heater under GPIO control — don't drive the heater from a GPIO directly. |
+| 14 | Base/gate resistor | 1 kΩ (from the assortment in #9) | 1 | – | |
+
+**~₹100–200 added**, still comfortably inside the sensor+MCU cost target
+even with the genuine FSR.
+
+Deliberately **not** included: the breath-sampling chamber (mouthpiece,
+hygiene handling). That's an unresolved physical-design question
+(`04_PHASES.md` Phase 3, `01_REQUIREMENTS.md` §7 risk #3), not a parts-list
+item — the bare module above is enough to bring up and calibrate the
+electronics on the bench.

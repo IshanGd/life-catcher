@@ -27,6 +27,7 @@ static void AddSources(JsonArray arr, uint8_t bits) {
   if (bits & kSrcPiezo)   arr.add("piezo");
   if (bits & kSrcFsr)     arr.add("fsr");
   if (bits & kSrcPanic)   arr.add("panic_button");
+  if (bits & kSrcMq3)     arr.add("mq3");
 }
 
 std::string Serialize(const StatusPayload& s) {

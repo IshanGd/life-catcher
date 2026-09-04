@@ -27,6 +27,8 @@ this build.
 | Buzzer | GPIO27 | active buzzer (+ to pin, − to GND) or passive via a transistor. |
 | Status LED | GPIO2 | onboard LED on most DevKits; solid = BLE linked, blinking = link lost. |
 | Battery sense | GPIO32 | optional; divider from VBAT. Set `kVbatWired = true` in `main.cpp` once wired. |
+| MQ-3 analog out | GPIO36 | input-only ADC1 pin (SVP); module's onboard load resistor, no external divider needed. Phase 3 — see §"Alcohol pre-ride check" below. |
+| MQ-3 heater enable | GPIO23 | drives a small switch transistor for the ~150 mA heater — **do not** wire the heater straight to a GPIO. |
 
 **Power**: bench USB for bring-up. A single-cell LiPo + charger/boost is a
 Phase 2 packaging task, not a wiring-diagram item.
@@ -43,6 +45,36 @@ ignition. The helmet is electrically isolated from the vehicle by design
   analog dividers here.
 - The ESP32 ADC is non-linear near the rails; the thresholds in the sensor
   drivers are deliberately loose and get calibrated during bring-up.
+
+## Alcohol pre-ride check (Phase 3, ADR-5)
+
+MQ-3 module VCC through a switch transistor (base via a resistor from
+GPIO23, collector/emitter switching the module's power) so the heater
+draws nothing between checks — an ESP32 GPIO can't source the ~150 mA an
+MQ-3 heater needs. Module's analog output goes straight to GPIO36.
+
+**Per-unit calibration (do this once per physical unit, before its first
+pre-ride check):**
+
+1. Flash the firmware, open the serial monitor at 115200 baud.
+2. Put the sensor in clean air — away from fuel, hand sanitizer, or
+   perfume, all of which the MQ-3 also reacts to.
+3. Send the line `CAL`. The firmware warms the heater, averages ~4 s of
+   readings once warm, and prints `[CAL] done: valid=1 baseline_adc=...`.
+4. The baseline is saved to NVS and survives power cycles. A unit that has
+   never run this reports every pre-ride check as `kUncalibrated` — never a
+   silent pass (`03_RULES.md` §2).
+
+Re-run `CAL` if the sensor is swapped or a check result looks wrong. The
+warm-up duration and the pass/fail ratio (`cfg::mq3` in
+`include/build_config.h`) are **PROVISIONAL** placeholders — re-tune them
+against real clean-air vs. alcohol-dosed breath samples once hardware
+exists (same status as `crash_fusion.cpp`'s thresholds).
+
+The **breath-sampling chamber** (mouthpiece, hygiene handling) is a
+separate, still-open physical-design question — none of the above depends
+on it being solved; the bare module works for bench bring-up of the
+electronics.
 
 ## Bring-up order (04_PHASES.md Phase 2)
 

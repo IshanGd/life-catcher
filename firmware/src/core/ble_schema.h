@@ -43,6 +43,8 @@ enum SensorBit : uint8_t {
   kSrcPiezo   = 1 << 1,
   kSrcFsr     = 1 << 2,
   kSrcPanic   = 1 << 3,
+  kSrcMq3     = 1 << 4,   // Phase 3 alcohol check -- single-sensor by design
+                          // (ADR-5 makes this a gate, not a fusion-confirmed SOS)
 };
 
 // ---------------------------------------------------------------------------

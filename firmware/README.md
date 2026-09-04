@@ -17,9 +17,14 @@ firmware/
 │   │   ├── imu_window.h      50 Hz / 100-sample ring + features (== ml/features.py)
 │   │   ├── crash_fusion.*    PROVISIONAL threshold classifier (see below)
 │   │   ├── sos_state_machine.*   the 10 s cancel window + event lifecycle
-│   │   └── link_monitor.h    BLE-link-down → fail-visibly
+│   │   ├── link_monitor.h    BLE-link-down → fail-visibly
+│   │   ├── alcohol_calibration.h Phase 3: per-unit MQ-3 baseline + store interface
+│   │   ├── mq3_sampling.h    Phase 3: shared warm-up + averaging primitive
+│   │   ├── mq3_calibration.h Phase 3: assembly-line calibration routine
+│   │   └── preride_check.*   Phase 3: the check-in state machine (ADR-5)
 │   ├── sensors/          # one driver per sensor (03_RULES.md §4)
-│   │   ├── imu_mpu6050.*  piezo.h  fsr_wear.h
+│   │   ├── imu_mpu6050.*  piezo.h  fsr_wear.h  mq3_alcohol.h
+│   │   ├── mq3_calibration_store.h   NVS-backed ICalibrationStore
 │   │   ├── panic_button.h  cancel_button.h  button.h  buzzer.h
 │   ├── ble/gatt_server.* # NimBLE GATT server
 │   ├── sim/main.cpp      # desktop simulator: real core/ vs an IMU-window CSV
@@ -39,7 +44,7 @@ pio run                    # build for esp32dev
 pio run -t upload          # flash (board on USB)
 pio device monitor         # serial console @ 115200
 
-pio test -e native         # run all host unit tests  -> 22/22 passing
+pio test -e native         # run all host unit tests  -> 32/32 passing
 pio test -e native -f test_sos_state_machine   # just the safety-critical one
 pio run  -e sim            # build the desktop simulator (see below)
 ```
@@ -91,8 +96,9 @@ simulation can't validate mounting, vibration, battery life, or BLE range.
 
 ## Compile status
 
-- `src/core/` + the desktop sim + all `native` tests: **compiled and green**
-  on GCC 16.1.0 (2026-09). `pio test -e native` → 22/22.
+- `src/core/` (including the Phase 3 alcohol pre-ride check) + the desktop
+  sim + all `native` tests: **compiled and green** on GCC 16.1.0 (2026-09).
+  `pio test -e native` → 32/32.
 - `src/sensors/`, `src/ble/`, `src/main.cpp` (the ESP32 build): **not yet
   compiled** — needs `pio run -e esp32dev`, which pulls the Arduino
   toolchain + NimBLE. This is the one place a library-version nit could bite:
@@ -128,7 +134,9 @@ mechanical fix — the logic is covered by the `native` tests.
 | MPU6050 / piezo / FSR / button / buzzer drivers | complete, compiles for native pieces, **not tested on hardware** |
 | NimBLE GATT server | complete, **not compiled**; callback signatures target NimBLE 1.4.x |
 | **`crash_fusion.cpp` thresholds** | **PROVISIONAL hand-set values.** Not the ML model. Must be re-tuned against drop-test data and then replaced by the ported Random Forest once `ml/README.md` shows a trustworthy crash model (ADR-3). |
-| Battery %, `pre_ride_passed` | stubbed (`-1` / `false`) — battery curve is a BOM task, pre-ride gate is Phase 3 |
+| Battery %, `pre_ride_passed` | battery still stubbed (`-1`, needs the divider wired — see BOM §3); `pre_ride_passed` is now real (reflects `PreRideCheckStateMachine`), pending an actual MQ-3 |
+| Pre-ride check-in / MQ-3 driver / calibration store | complete, host-tested (9 tests green) — thresholds provisional (see below), **not run against a physical MQ-3** |
+| **`cfg::mq3` warm-up / ratio-threshold** | **PROVISIONAL hand-set values,** same caveat as crash fusion. Needs re-tuning against real clean-air vs. alcohol-dosed breath samples once hardware exists. |
 
 ## Rule-bound behaviour (03_RULES.md)
 
@@ -142,7 +150,39 @@ mechanical fix — the logic is covered by the `native` tests.
 - **Fail visibly.** `LinkMonitor` drives the LED + buzzer when the phone
   link drops while the helmet is worn.
 - **No ignition control.** There is no such output pin or code path, and
-  there must never be one.
+  there must never be one — including from the alcohol pre-ride check.
+- **Alcohol sensor framing.** Never described as a "breathalyzer" or "BAC"
+  reading anywhere in code, logs, or (eventually) app strings — it's an
+  ethanol-vapor screen for an internal gate.
+- **Per-unit calibration, never a firmware constant.** The MQ-3 baseline
+  lives in `core::AlcoholCalibration`, persisted via NVS
+  (`sensors::Mq3CalibrationStore`) — see "Alcohol pre-ride check" below.
+
+## Alcohol pre-ride check — Phase 3 (ADR-5)
+
+Gated, one-shot, app-initiated: the app sends `{"cmd":"start_check"}` after
+the driver dons the helmet, before it lets them go online.
+`PreRideCheckStateMachine` warms the MQ-3 heater, samples for
+`cfg::mq3::kSampleWindowMs`, and compares the average against the unit's
+calibrated clean-air baseline. A fail emits one `alcohol_flag` event
+(`confirmed_by: ["mq3"]`) — it is **not** an SOS: single-sensor by design
+(ADR-5 makes this a gate, not a fusion-confirmed emergency), never routed
+through `SosStateMachine`, and there's no path from a fail to vehicle
+ignition.
+
+A unit with no calibration on file reports `kUncalibrated`, never a silent
+pass — run the calibration step first:
+
+```
+1. Open the serial monitor (115200 baud).
+2. Put the MQ-3 in clean air, well away from fuel/sanitizer/perfume.
+3. Send the line: CAL
+4. Wait ~24 s (kWarmupMs + kSampleWindowMs) for "[CAL] done: valid=1 baseline_adc=...".
+```
+
+This baseline is saved to NVS and survives power cycles. Re-run `CAL`
+any time the sensor is replaced or drifts — see `firmware/docs/WIRING.md`
+"Per-unit calibration" for the assembly-line version of this procedure.
 
 ## Panic button behaviour — DECIDED
 
