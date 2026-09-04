@@ -54,6 +54,16 @@ Windows: `winget install BrechtSanders.WinLibs.POSIX.UCRT` (GCC), then open a
 **new** terminal so the PATH update takes effect. `pio test -e native` and
 `pio run -e sim` were last run green on GCC 16.1.0 (2026-09).
 
+`pio run -e esp32dev` downloads its own toolchain (xtensa-esp32) the first
+time — no relation to the GCC above. **On Windows with the Microsoft Store
+Python** (`python.exe` under `...\WindowsApps\...`), that first run can fail
+with `ERROR: Can not combine '--user' and '--target'`: the Store build
+ships a site-level `pip.ini` that forces `--user`, which conflicts with
+PlatformIO's `pip install --target` for esptoolpy's dependencies. Fix:
+`set PIP_USER=no` (or `$env:PIP_USER = "no"` in PowerShell) before running
+`pio`. Confirmed working: `pio run -e esp32dev` → SUCCESS, RAM 12.0%
+(39420/327680 B), Flash 49.3% (646269/1310720 B) (2026-09).
+
 ## Do you need to buy hardware? Not yet.
 
 Three levels, cheapest first. You can get a long way before any parts arrive.
@@ -99,9 +109,13 @@ simulation can't validate mounting, vibration, battery life, or BLE range.
 - `src/core/` (including the Phase 3 alcohol pre-ride check) + the desktop
   sim + all `native` tests: **compiled and green** on GCC 16.1.0 (2026-09).
   `pio test -e native` → 32/32.
-- `src/sensors/`, `src/ble/`, `src/main.cpp` (the ESP32 build): **not yet
-  compiled** — needs `pio run -e esp32dev`, which pulls the Arduino
-  toolchain + NimBLE. This is the one place a library-version nit could bite:
+- `src/sensors/`, `src/ble/`, `src/main.cpp` (the full ESP32 build):
+  **compiled and green** — `pio run -e esp32dev` → SUCCESS (2026-09,
+  espressif32@6.13.0, NimBLE-Arduino@1.4.3, Adafruit MPU6050@2.2.9). RAM
+  12.0% (39420/327680 B), Flash 49.3% (646269/1310720 B). No NimBLE API
+  drift hit — resolved cleanly against 1.4.x (see the callback-signature
+  table below in case you ever bump the library). `firmware.bin` exists but
+  has not been flashed to a physical board yet (no hardware).
 
 The `NimBLE-Arduino` library **changed three callback function signatures**
 between v1.x and v2.x:
@@ -113,15 +127,10 @@ between v1.x and v2.x:
 | `NimBLECharacteristicCallbacks::onWrite` | `onWrite(NimBLECharacteristic*)` | `onWrite(NimBLECharacteristic*, NimBLEConnInfo&)` |
 
 `platformio.ini` pins `h2zero/NimBLE-Arduino@~1.4.3` with
-`espressif32@^6.7.0` — a known-good pair — so it **should compile clean**. If
-PlatformIO resolves something else and you get an
-`error: 'onConnect' marked 'override' but does not override`, either:
-- keep the pins as-is (recommended), or
-- if you deliberately move to NimBLE 2.x, add the `NimBLEConnInfo&` params to
-  those three overrides in `gatt_server.cpp` (the bodies don't change).
-
-Anything else that errors: paste the compiler output back and it's a quick
-mechanical fix — the logic is covered by the `native` tests.
+`espressif32@^6.7.0` — confirmed compiling clean against that pin. If you
+ever bump the library and get an `error: 'onConnect' marked 'override' but
+does not override`, add the `NimBLEConnInfo&` params to those three
+overrides in `gatt_server.cpp` (the bodies don't change).
 
 ## What's real vs. provisional
 
@@ -131,8 +140,8 @@ mechanical fix — the logic is covered by the `native` tests.
 | BLE JSON schema + serialization | complete, host-tested (6 tests green) |
 | crash fusion classifier | complete, host-tested (6 tests green) — thresholds provisional (see below) |
 | desktop simulator | complete, runs on synthetic + real DAMOTO windows |
-| MPU6050 / piezo / FSR / button / buzzer drivers | complete, compiles for native pieces, **not tested on hardware** |
-| NimBLE GATT server | complete, **not compiled**; callback signatures target NimBLE 1.4.x |
+| MPU6050 / piezo / FSR / button / buzzer / MQ-3 drivers | complete, **compiles clean for esp32dev**, not tested on hardware |
+| NimBLE GATT server | complete, **compiles clean for esp32dev** against NimBLE 1.4.3, not tested on hardware |
 | **`crash_fusion.cpp` thresholds** | **PROVISIONAL hand-set values.** Not the ML model. Must be re-tuned against drop-test data and then replaced by the ported Random Forest once `ml/README.md` shows a trustworthy crash model (ADR-3). |
 | Battery %, `pre_ride_passed` | battery still stubbed (`-1`, needs the divider wired — see BOM §3); `pre_ride_passed` is now real (reflects `PreRideCheckStateMachine`), pending an actual MQ-3 |
 | Pre-ride check-in / MQ-3 driver / calibration store | complete, host-tested (9 tests green) — thresholds provisional (see below), **not run against a physical MQ-3** |

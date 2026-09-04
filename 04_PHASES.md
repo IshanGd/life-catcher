@@ -8,13 +8,13 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 
 | Lane | Component | Status | Note |
 |---|---|---|---|
-| Hardware & Sensors | MPU6050 + ML crash detection | Design | Driver written (`firmware/src/sensors/imu_mpu6050.*`, ±16 g / ±2000 dps, 50 Hz → same units as `ml/`) — not yet run on a physical MPU6050 |
-| Hardware & Sensors | Piezo impact sensor | Design | Driver + fusion gate written (`firmware/src/sensors/piezo.h`, `core/crash_fusion.*`) — not yet wired |
-| Hardware & Sensors | FSR wear detection | Design | Driver written with hysteresis (`firmware/src/sensors/fsr_wear.h`) — placement/thresholds TBD on hardware |
-| Hardware & Sensors | ESP32 + BLE architecture | Design | NimBLE GATT server written (`firmware/src/ble/`), versioned schema — not yet compiled/flashed |
-| Hardware & Sensors | Panic / SOS button | Design | Driver + SOS trigger path written & host-tested — ready to flash + wire first (Phase 2 bring-up step 1) |
-| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Prototype (firmware side) | Driver + per-unit calibration store + pre-ride check-in state machine written & host-tested (`firmware/src/{sensors/mq3_*,core/preride_check.*,core/mq3_calibration.h}`) — not yet run on a physical MQ-3. **Breath-sampling chamber (mouthpiece/hygiene) is still an unresolved physical-design question, not a wiring task.** |
-| Hardware & Sensors | Cancel/confirm buzzer + UX | Design | Buzzer driver + the 10 s cancel-window state machine written & host-tested (`firmware/src/core/sos_state_machine.*`) |
+| Hardware & Sensors | MPU6050 + ML crash detection | Prototype (firmware side) | Driver written (`firmware/src/sensors/imu_mpu6050.*`, ±16 g / ±2000 dps, 50 Hz → same units as `ml/`) — compiles clean for `esp32dev` (2026-09); not yet run on a physical MPU6050 |
+| Hardware & Sensors | Piezo impact sensor | Prototype (firmware side) | Driver + fusion gate written (`firmware/src/sensors/piezo.h`, `core/crash_fusion.*`) — compiles clean for `esp32dev`; not yet wired |
+| Hardware & Sensors | FSR wear detection | Prototype (firmware side) | Driver written with hysteresis (`firmware/src/sensors/fsr_wear.h`) — compiles clean for `esp32dev`; placement/thresholds TBD on hardware |
+| Hardware & Sensors | ESP32 + BLE architecture | Prototype (firmware side) | NimBLE GATT server written (`firmware/src/ble/`), versioned schema — **compiles clean for `esp32dev`** (2026-09); not yet flashed to a physical board |
+| Hardware & Sensors | Panic / SOS button | Prototype (firmware side) | Driver + SOS trigger path written & host-tested, compiles clean for `esp32dev` — ready to flash + wire first (Phase 2 bring-up step 1) |
+| Hardware & Sensors | MQ-3 alcohol sensor + breath chamber | Prototype (firmware side) | Driver + per-unit calibration store + pre-ride check-in state machine written & host-tested (`firmware/src/{sensors/mq3_*,core/preride_check.*,core/mq3_calibration.h}`), compiles clean for `esp32dev` — not yet run on a physical MQ-3. **Breath-sampling chamber (mouthpiece/hygiene) is still an unresolved physical-design question, not a wiring task.** |
+| Hardware & Sensors | Cancel/confirm buzzer + UX | Prototype (firmware side) | Buzzer driver + the 10 s cancel-window state machine written & host-tested (`firmware/src/core/sos_state_machine.*`), compiles clean for `esp32dev` |
 | Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | `ml/` runs end-to-end on synthetic **and** real data; group-aware out-of-fold evaluation; reports crash-class FN/FP per `03_RULES.md` §3; 8 smoke tests |
 | Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO loaded & verified (`ml/loaders/damoto.py`); first non-synthetic run done — 0% missed / 0% false-alarm on crash, group-aware, BUT only 4 fall events, all ~90 km/h full-rotation track falls with saturated sensors → **not a field-accuracy result** (`ml/README.md` §Results). Still needed: low-speed tip-over data, real Indian-road pothole data, controlled drop-tests (Phase 2). |
 | Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
@@ -22,7 +22,7 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
 | Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
 | Software & App | BLE data pipeline (helmet ↔ app) | Prototype (firmware side) | Firmware side written: `firmware/src/core/ble_schema.*` (versioned JSON, host-tested) + NimBLE GATT server + `tools/ble_probe.py` desktop client. App side still not started. |
-| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` — safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + BLE schema + Phase 3 pre-ride check-in **compiled & host-tested green (32/32, GCC 16)**. Desktop sim runs the real core on the DAMOTO windows: 8 crash SOS, 0 false alarms on 162 non-crash windows (IMU/piezo path only — the sim doesn't exercise the alcohol check). ESP32 build (sensors/BLE) not yet compiled; no hardware. Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
+| Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` — safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + BLE schema + Phase 3 pre-ride check-in **compiled & host-tested green (32/32, GCC 16)**. Desktop sim runs the real core on the DAMOTO windows: 8 crash SOS, 0 false alarms on 162 non-crash windows (IMU/piezo path only — the sim doesn't exercise the alcohol check). **`pio run -e esp32dev` now compiles clean too** (sensors + NimBLE GATT server + main.cpp; RAM 12%, Flash 49%) — no NimBLE API drift; still not flashed to a physical board, no hardware. Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
 | Firmware & Intelligence | Continuous data flywheel (confirm/cancel → retraining) | Design | Architecture defined (ADR-6) — depends on Phase 2 hardware and a consent flow (`06_GOVERNANCE.md`) before going live |
 | Business & Market | Market & competitive landscape | Validated | Zomato, Rapido, Ola, AVRO Helmets mapped; differentiation identified |
 | Business & Market | B2B2C GTM strategy | Design | Path defined (fleet-leasing/insurer pilot before platform HQ) — no partner conversations started |
@@ -133,10 +133,16 @@ BLE JSON. Wokwi (`firmware/wokwi.toml` + `diagram.json`) simulates the ESP32
 Panic-button behaviour: **decided** — same 10 s window + buzzer as a crash
 (`03_RULES.md` §1 rationale), `cfg::kPanicUsesCancelWindow = true`.
 
+**Done (2026-09):** `pio run -e esp32dev` — first full compile of the sensor
++ NimBLE layer against the pinned `espressif32@6.13.0` /
+`NimBLE-Arduino@1.4.3`. SUCCESS, no NimBLE API drift, RAM 12.0%, Flash
+49.3%. (Hit and fixed an unrelated environment bug getting there: the
+Microsoft Store Python's bundled `pip.ini` forces `--user` installs, which
+breaks PlatformIO's `pip install --target` for esptoolpy — fix is
+`PIP_USER=no`, documented in `firmware/README.md`.) `firmware.bin` exists
+but has not been flashed to a board — no hardware yet.
+
 **Still to do (needs physical hardware — the actual Phase 2 work):**
-- `pio run -e esp32dev` — first compile of the sensor + NimBLE layer (the
-  `native` tests and `sim` already build & pass on GCC 16); fix any NimBLE
-  API drift against the resolved library version.
 - Assemble MPU6050 + piezo + FSR + ESP32 + panic button + buzzer per
   `01_REQUIREMENTS.md` §4.1 / `firmware/docs/WIRING.md`. Panic button first.
 - Bring-up on the bench: verify each sensor, then the full
@@ -184,8 +190,6 @@ over BLE to a test harness or the app.
 - Wire a real MQ-3, run `CAL` for a first live per-unit baseline, and
   re-tune `cfg::mq3::kWarmupMs` / `kAlcoholRatioThreshold` against known
   clean vs. alcohol-dosed breath samples.
-- `pio run -e esp32dev` needs to actually succeed with the MQ-3 driver
-  compiled in (untried — see `firmware/README.md` "Compile status").
 
 **Exit criteria:** a repeatable, documented per-unit calibration process and
 a working pre-ride check-in flow on real hardware. The calibration process
