@@ -17,8 +17,8 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Hardware & Sensors | Cancel/confirm buzzer + UX | Prototype (firmware side) | Buzzer driver + the 10 s cancel-window state machine written & host-tested (`firmware/src/core/sos_state_machine.*`), compiles clean for `esp32dev` |
 | Firmware & Intelligence | Crash-detection ML pipeline (code) | Prototype | `ml/` runs end-to-end on synthetic **and** real data; group-aware out-of-fold evaluation; reports crash-class FN/FP per `03_RULES.md` §3; 8 smoke tests |
 | Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO loaded & verified (`ml/loaders/damoto.py`); first non-synthetic run done — 0% missed / 0% false-alarm on crash, group-aware, BUT only 4 fall events, all ~90 km/h full-rotation track falls with saturated sensors → **not a field-accuracy result** (`ml/README.md` §Results). Still needed: low-speed tip-over data, real Indian-road pothole data, controlled drop-tests (Phase 2). |
-| Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
-| Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
+| Firmware & Intelligence | Ride behavior scoring | Prototype | `RideBehaviorScorer` (`app/lib/logic/ride_behavior_scorer.dart`), host-tested — weighted-penalty model over per-100km harsh-event rates. Wired into the app's safety score, weekly trend, and Trends-tab breakdown, replacing the old hardcoded sample numbers. Weights are PROVISIONAL (hand-picked, not fitted to fleet data) — same status as `crash_fusion.cpp`'s thresholds. |
+| Firmware & Intelligence | Shift fatigue / nudge logic | Prototype | `FatigueNudgeEngine` (`app/lib/logic/fatigue_nudge_engine.dart`), host-tested — a state machine (mirrors `SosStateMachine`'s pop-outgoing-events pattern) that fires one nudge per continuous-riding streak past a threshold. Wired into the Home screen's fatigue watch card and into the Alerts feed (a fired nudge now appears as a real event, not just a canned row). Threshold (3h) is PROVISIONAL — a single hand-picked constant, not a designed model. |
 | Software & App | Driver-facing app UI | Prototype | Real Flutter app (`app/`), all 4 screens from `05_DESIGN.md` §2 built and running (web target verified) against `MockHelmetDataService` sample data through the `HelmetDataService` seam — no BLE backend yet. **Correction (2026-09): no mockup ever existed in this repo** — `04_PHASES.md`/`05_DESIGN.md`'s references to a pre-existing "mockup" were never backed by a committed `mockups/` folder; `app/` is the first real build. |
 | Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
 | Software & App | BLE data pipeline (helmet ↔ app) | Prototype (firmware side) | Firmware side written: `firmware/src/core/ble_schema.*` (versioned JSON, host-tested) + NimBLE GATT server + `tools/ble_probe.py` desktop client. App side still not started. |
@@ -217,15 +217,26 @@ existed — see the Phase 0 correction above):
   (`EventKind` ~ `schema::EventType`, including the Phase 3 `alcoholFlag`)
   plus the phone-side computed fields (safety score, trends, shift timer)
   the app itself owns.
+- Ride behavior scoring (`RideBehaviorScorer`) and shift fatigue / nudge
+  logic (`FatigueNudgeEngine`) designed and wired in — see the status table
+  above and `app/lib/logic/`. Both are framework-agnostic, host-tested pure
+  Dart (mirrors `firmware/src/core/`'s separation of rule-bound logic from
+  I/O), driven by simulated per-day harsh-event rates and a simulated
+  continuous-riding clock today. The app's safety score, weekly trend, and
+  Trends-tab breakdown are now genuinely computed from that data, not
+  hardcoded — a fired fatigue nudge shows up as a real event in the Alerts
+  feed, not just a canned historical row.
 
 **Still to do:**
-- Replace `MockHelmetDataService` with a real BLE-backed implementation of
-  the same interface, once Phase 2 hardware exists and is broadcasting —
-  this is blocked on Phase 2's physical bring-up, not on any app code.
-- Design (not just implement) the ride behavior scoring model and fatigue
-  nudge thresholds — currently Concept-status per the table above; the app
-  only has illustrative placeholder logic (e.g. the fatigue countdown's 3h
-  threshold), not a real model.
+- Replace `MockHelmetDataService`'s simulated inputs (per-day harsh-event
+  rates, the continuous-riding clock) with real accel + phone GPS data,
+  once Phase 2 hardware exists and is broadcasting — `RideBehaviorScorer`
+  and `FatigueNudgeEngine` themselves don't need to change, only what
+  feeds them. This is blocked on Phase 2's physical bring-up, not on any
+  app code.
+- Re-tune `RideBehaviorScorer`'s weights and `FatigueNudgeEngine`'s 3h
+  threshold against real ride/shift data once it exists (04_PHASES.md
+  Phase 6) — both are PROVISIONAL hand-picked values today.
 - Implement SOS relay via phone data/SMS + phone GPS.
 
 **Exit criteria:** the app screens are backed by real device data and a

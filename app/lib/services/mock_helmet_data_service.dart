@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../logic/fatigue_nudge_engine.dart';
+import '../logic/ride_behavior_scorer.dart';
 import '../models/device_health.dart';
 import '../models/driver_event.dart';
 import '../models/driver_profile.dart';
@@ -7,24 +9,47 @@ import '../models/helmet_status.dart';
 import '../models/trend.dart';
 import 'helmet_data_service.dart';
 
-/// Sample data standing in for the real BLE pipeline (Phase 2 hardware) and
-/// phone-side scoring/trend computation (Phase 4's remaining app-side
-/// work). This is the "mockup with sample data" 04_PHASES.md Phase 0
-/// describes -- it never existed as a committed mockup in this repo, so
-/// this class is that starting point, built directly against the real
+/// Sample data standing in for the real BLE pipeline (Phase 2 hardware) --
+/// but the ride-behavior scoring and fatigue-nudge numbers it produces are
+/// computed by the real [RideBehaviorScorer] / [FatigueNudgeEngine] logic,
+/// not hardcoded. Only the inputs (per-day harsh-event rates, a simulated
+/// continuous-riding clock) are sample data; what happens to them is real.
+///
+/// This is the "mockup with sample data" 04_PHASES.md Phase 0 describes --
+/// it never existed as a committed mockup in this repo, so this class is
+/// that starting point, built directly against the real
 /// [HelmetDataService] seam instead of a throwaway prototype.
 class MockHelmetDataService implements HelmetDataService {
   MockHelmetDataService()
       : _shiftStart = DateTime.now().subtract(const Duration(hours: 2, minutes: 14)),
-        _lastBreakAt = DateTime.now().subtract(const Duration(hours: 1, minutes: 50));
+        _fatigueEngine = FatigueNudgeEngine(continuousSince: DateTime.now().subtract(const Duration(hours: 1, minutes: 50)));
 
   final DateTime _shiftStart;
-  final DateTime _lastBreakAt;
+  final FatigueNudgeEngine _fatigueEngine;
 
-  /// "Break suggested" fires once continuous riding hits this long
-  /// (05_DESIGN.md §2.1 fatigue-watch countdown; concept-only per
-  /// 04_PHASES.md, so this threshold is illustrative, not a tuned value).
-  static const _continuousRideBreakThreshold = Duration(hours: 3);
+  /// Nudges the fatigue engine has actually fired, newest first -- merged
+  /// into the event history so a live-fired nudge shows up for real, not
+  /// just as a canned historical row.
+  final List<DriverEvent> _firedNudgeEvents = [];
+  int _nudgeIdCounter = 0;
+
+  /// Per-day harsh-event rates for the week (Mon..Sun, Sun == today) --
+  /// the simulated stand-in for real accel+GPS-derived telemetry
+  /// (01_REQUIREMENTS.md §4.4). [RideBehaviorScorer] turns these into the
+  /// actual scores shown in the UI; nothing below is a pre-computed score.
+  static const _weeklyRideInputs = <String, RideBehaviorInput>{
+    'Mon': RideBehaviorInput(harshBrakingPer100km: 3.6, harshAccelPer100km: 2.8, corneringPer100km: 1.8),
+    'Tue': RideBehaviorInput(harshBrakingPer100km: 3.0, harshAccelPer100km: 2.2, corneringPer100km: 1.5),
+    'Wed': RideBehaviorInput(harshBrakingPer100km: 3.8, harshAccelPer100km: 3.0, corneringPer100km: 2.0),
+    'Thu': RideBehaviorInput(harshBrakingPer100km: 2.6, harshAccelPer100km: 2.0, corneringPer100km: 1.2),
+    'Fri': RideBehaviorInput(harshBrakingPer100km: 2.4, harshAccelPer100km: 1.8, corneringPer100km: 1.0),
+    'Sat': RideBehaviorInput(harshBrakingPer100km: 2.2, harshAccelPer100km: 1.6, corneringPer100km: 0.8),
+    'Sun': RideBehaviorInput(harshBrakingPer100km: 2.1, harshAccelPer100km: 1.4, corneringPer100km: 0.6),
+  };
+
+  List<TrendPoint> _weeklyScores() => [
+        for (final entry in _weeklyRideInputs.entries) TrendPoint(label: entry.key, score: RideBehaviorScorer.score(entry.value)),
+      ];
 
   @override
   Stream<HelmetStatus> watchStatus() async* {
@@ -34,8 +59,27 @@ class MockHelmetDataService implements HelmetDataService {
 
   HelmetStatus _statusNow() {
     final now = DateTime.now();
-    final continuous = now.difference(_lastBreakAt);
-    final breakSuggestedIn = _continuousRideBreakThreshold - continuous;
+    _fatigueEngine.tick(now);
+    var nudge = _fatigueEngine.popNudge();
+    while (nudge != null) {
+      _firedNudgeEvents.insert(
+        0,
+        DriverEvent(
+          id: 'nudge-${_nudgeIdCounter++}',
+          kind: EventKind.fatigueNudgeSent,
+          timestamp: nudge.firedAt,
+          description: 'Fatigue nudge sent — ${_formatHours(nudge.continuousDuration)} continuous riding',
+        ),
+      );
+      nudge = _fatigueEngine.popNudge();
+    }
+
+    final scores = _weeklyScores();
+    final today = scores.last.score;
+    final yesterday = scores[scores.length - 2].score;
+    final firstHalfAvg = _average(scores.take(scores.length ~/ 2).map((p) => p.score));
+    final secondHalfAvg = _average(scores.skip(scores.length ~/ 2).map((p) => p.score));
+
     return HelmetStatus(
       driverName: 'Arjun',
       platformName: 'Rapido',
@@ -45,13 +89,25 @@ class MockHelmetDataService implements HelmetDataService {
       bleConnected: true,
       batteryPct: 78,
       firmwareVersion: '0.1.0-phase2',
-      safetyScoreToday: 87,
-      safetyScoreDeltaVsYesterday: 5,
-      riskTrend7dScore: 82,
-      riskTrendImproving: true,
-      continuousShiftDuration: continuous,
-      breakSuggestedIn: breakSuggestedIn.isNegative ? Duration.zero : breakSuggestedIn,
+      safetyScoreToday: today,
+      safetyScoreDeltaVsYesterday: today - yesterday,
+      riskTrend7dScore: _average(scores.map((p) => p.score)).round(),
+      riskTrendImproving: secondHalfAvg >= firstHalfAvg,
+      continuousShiftDuration: _fatigueEngine.continuousDuration(now),
+      breakSuggestedIn: _fatigueEngine.breakSuggestedIn(now),
     );
+  }
+
+  static double _average(Iterable<int> values) {
+    final list = values.toList();
+    if (list.isEmpty) return 0;
+    return list.reduce((a, b) => a + b) / list.length;
+  }
+
+  static String _formatHours(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    return h > 0 ? '${h}h${m > 0 ? ' ${m}m' : ''}' : '${m}m';
   }
 
   @override
@@ -63,7 +119,7 @@ class MockHelmetDataService implements HelmetDataService {
   @override
   Future<List<DriverEvent>> alertHistory() async {
     final now = DateTime.now();
-    return [
+    final canned = [
       DriverEvent(
         id: 'evt-6',
         kind: EventKind.harshBrake,
@@ -105,25 +161,21 @@ class MockHelmetDataService implements HelmetDataService {
         description: 'Panic button self-test passed',
       ),
     ];
+    return [..._firedNudgeEvents, ...canned];
   }
 
   @override
-  Future<List<TrendPoint>> weeklyTrend() async => const [
-        TrendPoint(label: 'Mon', score: 74),
-        TrendPoint(label: 'Tue', score: 78),
-        TrendPoint(label: 'Wed', score: 71),
-        TrendPoint(label: 'Thu', score: 80),
-        TrendPoint(label: 'Fri', score: 83),
-        TrendPoint(label: 'Sat', score: 79),
-        TrendPoint(label: 'Sun', score: 87),
-      ];
+  Future<List<TrendPoint>> weeklyTrend() async => _weeklyScores();
 
   @override
-  Future<List<HarshEventRate>> harshEventBreakdown() async => const [
-        HarshEventRate(label: 'Harsh braking', ratePer100km: 2.1),
-        HarshEventRate(label: 'Harsh acceleration', ratePer100km: 1.4),
-        HarshEventRate(label: 'Cornering anomalies', ratePer100km: 0.6),
-      ];
+  Future<List<HarshEventRate>> harshEventBreakdown() async {
+    final today = _weeklyRideInputs['Sun']!;
+    return [
+      HarshEventRate(label: 'Harsh braking', ratePer100km: today.harshBrakingPer100km),
+      HarshEventRate(label: 'Harsh acceleration', ratePer100km: today.harshAccelPer100km),
+      HarshEventRate(label: 'Cornering anomalies', ratePer100km: today.corneringPer100km),
+    ];
+  }
 
   @override
   Future<ComplianceStats> complianceStats() async => const ComplianceStats(

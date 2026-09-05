@@ -60,8 +60,15 @@ Every screen is real, data-driven Flutter code. What's behind it:
 | Data | Source |
 |---|---|
 | Screen layout, components, theming | Real — matches `05_DESIGN.md` §1/§2 |
-| `HelmetStatus` (helmet worn, pre-ride, BLE link, battery, safety score, shift timer) | `MockHelmetDataService` — sample values, shift/fatigue timers tick live off the system clock |
-| Events, trends, compliance, profile, device health | `MockHelmetDataService` — static sample data |
+| Safety score, weekly trend, Trends-tab harsh-event breakdown | **Real computation** — `lib/logic/ride_behavior_scorer.dart`, fed by sample per-day harsh-event rates (`MockHelmetDataService._weeklyRideInputs`). Weights are PROVISIONAL, not fitted to real fleet data. |
+| Fatigue watch card, "break suggested in" countdown, fatigue-nudge Alerts entries | **Real computation** — `lib/logic/fatigue_nudge_engine.dart`, fed by a simulated continuous-riding clock. Threshold (3h) is PROVISIONAL. |
+| `HelmetStatus`'s remaining fields (helmet worn, pre-ride, BLE link, battery) | `MockHelmetDataService` — sample values |
+| Alert history (aside from live fatigue nudges), compliance, profile, device health | `MockHelmetDataService` — static sample data |
+
+`RideBehaviorScorer` and `FatigueNudgeEngine` are framework-agnostic pure
+Dart (no Flutter imports) so they're unit-tested directly
+(`test/ride_behavior_scorer_test.dart`, `test/fatigue_nudge_engine_test.dart`)
+and can be re-tuned or fed real telemetry later without touching a screen.
 
 None of this is wired to the Phase 2 firmware's real BLE contract yet —
 that requires the physical hardware bring-up (`firmware/docs/WIRING.md`)
