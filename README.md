@@ -25,19 +25,29 @@ in this order:
    third-party data sharing. Must be resolved with the first pilot partner
    before that pilot's contract is signed.
 
-`mockups/` contains the original clickable HTML references
-(`dashboard_mockup.html`, `progress_map.html`) that `05_DESIGN.md` and
-`04_PHASES.md` are derived from — open them directly for anything not
-fully captured in writing.
+**Note (2026-09):** `05_DESIGN.md` and `04_PHASES.md` both refer to a
+`mockups/` folder (`dashboard_mockup.html`, `progress_map.html`) as the
+visual source of truth for the driver app. That folder has never existed
+in this repository — checked via `git log` across all history. Treat
+`05_DESIGN.md`'s written spec as the actual source of truth; `app/` (below)
+is the first real implementation of it, built directly rather than from a
+mockup that doesn't exist here.
 
 `ml/` holds the crash-detection pipeline — see `ml/README.md`. It runs
 end-to-end on synthetic and real (DAMOTO) data; Phase 1's exit criterion is
 met (with caveats — see `ml/README.md` §Results).
 
 `firmware/` holds the ESP32 prototype firmware — see `firmware/README.md`.
-The safety-critical core (SOS state machine, fusion gate, BLE schema) is
-written and host-unit-tested; Phase 2 (physical build + bring-up) is in
-progress and nothing is on hardware yet.
+The safety-critical core (SOS state machine, fusion gate, BLE schema,
+Phase 3 alcohol pre-ride check) is written and host-unit-tested, and
+compiles clean for the real ESP32 target too; Phase 2 physical bring-up is
+still pending — no hardware assembled yet.
+
+`app/` holds the driver companion app (Flutter, Phase 4) — see
+`app/README.md`. The four screens in `05_DESIGN.md` §2 are built and
+running against sample data through a `HelmetDataService` seam; wiring
+that seam to the real BLE pipeline is blocked on the Phase 2 hardware
+bring-up above.
 
 ## Source material
 
@@ -54,9 +64,9 @@ These docs synthesize (and should be kept consistent with):
 Start at Phase 1 in `04_PHASES.md` (real crash-detection data) or Phase 2
 (physical prototype) — those are the critical path, alongside drafting the
 governance policy in `06_GOVERNANCE.md` with the first pilot partner (can
-run in parallel, doesn't block hardware work). Don't start building the
-Fleet-Ops Dashboard (Phase 5 — spec exists in `05_DESIGN.md` §3, but it's
-not built) or polish the companion app UI beyond what's already mocked
+run in parallel, doesn't block hardware work). Phase 4's UI shell (`app/`)
+already exists against sample data; don't start building the Fleet-Ops
+Dashboard (Phase 5 — spec exists in `05_DESIGN.md` §3, but it's not built)
 until Phases 1–2 land, and don't let any Fleet-Ops feature that exposes a
 driver's score go live before `06_GOVERNANCE.md` §2 is resolved. See
 `04_PHASES.md` §"Sequencing notes" for the full reasoning.

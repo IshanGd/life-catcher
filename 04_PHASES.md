@@ -19,7 +19,7 @@ Update this table as work lands — don't let it drift from `03_RULES.md` §5.
 | Firmware & Intelligence | Crash-detection **dataset** (real) | **In progress** | DAMOTO loaded & verified (`ml/loaders/damoto.py`); first non-synthetic run done — 0% missed / 0% false-alarm on crash, group-aware, BUT only 4 fall events, all ~90 km/h full-rotation track falls with saturated sensors → **not a field-accuracy result** (`ml/README.md` §Results). Still needed: low-speed tip-over data, real Indian-road pothole data, controlled drop-tests (Phase 2). |
 | Firmware & Intelligence | Ride behavior scoring | Concept | Concept agreed (accel + phone GPS) — scoring model/thresholds not yet designed |
 | Firmware & Intelligence | Shift fatigue / nudge logic | Concept | Concept agreed — nudge timing/thresholds not yet designed |
-| Software & App | Driver-facing app UI | Prototype | iOS + Android mockup built with sample data — no backend/real functionality yet |
+| Software & App | Driver-facing app UI | Prototype | Real Flutter app (`app/`), all 4 screens from `05_DESIGN.md` §2 built and running (web target verified) against `MockHelmetDataService` sample data through the `HelmetDataService` seam — no BLE backend yet. **Correction (2026-09): no mockup ever existed in this repo** — `04_PHASES.md`/`05_DESIGN.md`'s references to a pre-existing "mockup" were never backed by a committed `mockups/` folder; `app/` is the first real build. |
 | Software & App | Fleet-Ops Dashboard | Design | Full 3-view spec now exists (fleet ops / insurer claims / support, `05_DESIGN.md` §3) with an access model (`02_ARCHITECTURE.md` §7) — no UI or backend built yet |
 | Software & App | BLE data pipeline (helmet ↔ app) | Prototype (firmware side) | Firmware side written: `firmware/src/core/ble_schema.*` (versioned JSON, host-tested) + NimBLE GATT server + `tools/ble_probe.py` desktop client. App side still not started. |
 | Firmware & Intelligence | Helmet firmware (Phase 2) | Prototype | `firmware/` — safety-critical SOS state machine (fusion-only crash, fixed 10 s cancel window, logged cancellations) + fusion classifier + BLE schema + Phase 3 pre-ride check-in **compiled & host-tested green (32/32, GCC 16)**. Desktop sim runs the real core on the DAMOTO windows: 8 crash SOS, 0 false alarms on 162 non-crash windows (IMU/piezo path only — the sim doesn't exercise the alcohol check). **`pio run -e esp32dev` now compiles clean too** (sensors + NimBLE GATT server + main.cpp; RAM 12%, Flash 49%) — no NimBLE API drift; still not flashed to a physical board, no hardware. Crash fusion uses PROVISIONAL thresholds, not the ported ML model. |
@@ -67,14 +67,19 @@ needs low-speed tip-over data, real pothole data, and controlled drop-tests
 
 ### Phase 0 — Foundations (done)
 - Market/competitive research, feature categorization, B2B2C GTM strategy.
-- Companion app UI mockup (iOS + Android) with sample data.
 - ML pipeline scaffolding validated on synthetic data.
 - Architecture decisions locked (phone-offload, ESP32+BLE, fusion-only
   triggers, gated alcohol check) — see `02_ARCHITECTURE.md`.
 
+**Correction (2026-09):** this used to also claim "Companion app UI mockup
+(iOS + Android) with sample data" as done here, and the exit criteria
+below used to say "a clickable app mockup exists." Neither was ever true in
+this repository — no `mockups/` or `app/` folder was ever committed before
+Phase 4 built `app/` from scratch against the `05_DESIGN.md` spec. Leaving
+this note rather than quietly rewriting history.
+
 **Exit criteria (met):** requirements, architecture, and design docs exist
-and are internally consistent; a runnable ML scaffold and a clickable app
-mockup both exist.
+and are internally consistent; a runnable ML scaffold exists.
 
 ### Phase 1 — Real crash-detection data (critical path #1)
 
@@ -198,14 +203,35 @@ still open, gated on a physical MQ-3 (not the breath chamber, which can lag
 behind — see `firmware/docs/BOM.md` §"MQ-3 (Phase 3)").
 
 ### Phase 4 — Companion app: real functionality
-- Replace the mockup's sample data with the live BLE pipeline from Phase 2,
-  through the app's single data-service seam (`02_ARCHITECTURE.md` §5).
-- Implement ride behavior scoring and fatigue nudge logic (currently
-  concept-only) against real accel + phone GPS data.
+
+**Done (2026-09):** the UI itself, built from scratch (no mockup ever
+existed — see the Phase 0 correction above):
+- Real Flutter app in `app/`, all 4 screens from `05_DESIGN.md` §2 (Home,
+  Trends, Alerts, Profile) plus the bottom nav shell — `flutter analyze`
+  clean, `flutter test` green, verified rendering correctly in a browser
+  (web target) against every component in the §4 checklist.
+- `HelmetDataService` (`app/lib/services/`) is the single seam
+  (`02_ARCHITECTURE.md` §5) — `MockHelmetDataService` implements it with
+  sample data today; screens never touch a data source directly.
+- Models mirror the firmware's BLE contract where it applies
+  (`EventKind` ~ `schema::EventType`, including the Phase 3 `alcoholFlag`)
+  plus the phone-side computed fields (safety score, trends, shift timer)
+  the app itself owns.
+
+**Still to do:**
+- Replace `MockHelmetDataService` with a real BLE-backed implementation of
+  the same interface, once Phase 2 hardware exists and is broadcasting —
+  this is blocked on Phase 2's physical bring-up, not on any app code.
+- Design (not just implement) the ride behavior scoring model and fatigue
+  nudge thresholds — currently Concept-status per the table above; the app
+  only has illustrative placeholder logic (e.g. the fatigue countdown's 3h
+  threshold), not a real model.
 - Implement SOS relay via phone data/SMS + phone GPS.
 
-**Exit criteria:** the app mockup screens are backed by real device data and
-a real (not simulated) SOS path, tested end-to-end.
+**Exit criteria:** the app screens are backed by real device data and a
+real (not simulated) SOS path, tested end-to-end. **Not yet met** — the
+screens exist and are correct against the spec, but every data source
+behind them is still sample data.
 
 ### Phase 5 — Fleet-Ops Dashboard
 - Build against the now-complete spec in `05_DESIGN.md` §3: the three

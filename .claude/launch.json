@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "smart-helmet-app-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m", "http.server", "5960",
+        "--directory", "C:\\Users\\ISHAN\\OneDrive\\Desktop\\projects\\life catcher- smart helmet\\app\\build\\web"
+      ],
+      "port": 5960
+    }
+  ]
+}

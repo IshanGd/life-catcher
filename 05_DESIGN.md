@@ -1,11 +1,12 @@
 # Smart Helmet — Design Spec
 
-This spec is reverse-derived from the existing v0.1 clickable mockup
-(`docs/mockups/dashboard_mockup.html`) and the companion progress-tracking
-view (`docs/mockups/progress_map.html`), so Claude Code can rebuild these as
-real, data-backed screens without guessing at the design intent. Treat the
-mockup HTML as the visual source of truth for anything not written out
-below — read it directly before implementing a screen.
+This spec was originally written as reverse-derived from a v0.1 clickable
+mockup (`docs/mockups/dashboard_mockup.html`, `docs/mockups/progress_map.html`).
+**Correction (2026-09): that mockup does not exist in this repository** —
+checked via `git log` across all history, nothing at `docs/mockups/` or
+`mockups/` was ever committed. Do not try to "read it directly"; this
+written spec (plus `app/` for the driver screens, built directly from it)
+is the actual source of truth going forward.
 
 ## 1. Design system
 
