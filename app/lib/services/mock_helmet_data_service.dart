@@ -6,6 +6,7 @@ import '../models/device_health.dart';
 import '../models/driver_event.dart';
 import '../models/driver_profile.dart';
 import '../models/helmet_status.dart';
+import '../models/sos_event.dart';
 import '../models/trend.dart';
 import 'helmet_data_service.dart';
 
@@ -26,12 +27,13 @@ class MockHelmetDataService implements HelmetDataService {
 
   final DateTime _shiftStart;
   final FatigueNudgeEngine _fatigueEngine;
+  final _sosEventController = StreamController<SosEvent>.broadcast();
 
-  /// Nudges the fatigue engine has actually fired, newest first -- merged
-  /// into the event history so a live-fired nudge shows up for real, not
-  /// just as a canned historical row.
-  final List<DriverEvent> _firedNudgeEvents = [];
-  int _nudgeIdCounter = 0;
+  /// Live-fired events (fatigue nudges, SOS dispatch outcomes) merged into
+  /// the event history so they show up for real, newest first -- not just
+  /// as canned historical rows.
+  final List<DriverEvent> _dynamicEvents = [];
+  int _dynamicEventIdCounter = 0;
 
   /// Per-day harsh-event rates for the week (Mon..Sun, Sun == today) --
   /// the simulated stand-in for real accel+GPS-derived telemetry
@@ -62,10 +64,10 @@ class MockHelmetDataService implements HelmetDataService {
     _fatigueEngine.tick(now);
     var nudge = _fatigueEngine.popNudge();
     while (nudge != null) {
-      _firedNudgeEvents.insert(
+      _dynamicEvents.insert(
         0,
         DriverEvent(
-          id: 'nudge-${_nudgeIdCounter++}',
+          id: 'nudge-${_dynamicEventIdCounter++}',
           kind: EventKind.fatigueNudgeSent,
           timestamp: nudge.firedAt,
           description: 'Fatigue nudge sent — ${_formatHours(nudge.continuousDuration)} continuous riding',
@@ -161,7 +163,7 @@ class MockHelmetDataService implements HelmetDataService {
         description: 'Panic button self-test passed',
       ),
     ];
-    return [..._firedNudgeEvents, ...canned];
+    return [..._dynamicEvents, ...canned];
   }
 
   @override
@@ -192,7 +194,8 @@ class MockHelmetDataService implements HelmetDataService {
         vehicleType: 'Two-wheeler',
         deviceId: 'SmartHelmet-0001',
         pairingStatus: PairingStatus.paired,
-        emergencyContactSet: true,
+        emergencyContactName: 'Priya (spouse)',
+        emergencyContactPhone: '+91 90000 00000',
       );
 
   @override
@@ -202,4 +205,29 @@ class MockHelmetDataService implements HelmetDataService {
         firmwareVersion: '0.1.0-phase2',
         alcoholCalibrationAge: const Duration(days: 3),
       );
+
+  @override
+  Stream<SosEvent> watchConfirmedSosEvents() => _sosEventController.stream;
+
+  @override
+  void recordSosDispatchOutcome(DriverEvent event) {
+    _dynamicEvents.insert(0, event);
+  }
+
+  /// Test/debug only -- there is no real hardware yet (04_PHASES.md
+  /// Phase 2), so this is how the SOS relay path gets exercised at all
+  /// before a physical helmet exists. Not part of [HelmetDataService]: a
+  /// real BLE-backed implementation wouldn't have a "pretend this arrived"
+  /// method. Mirrors the firmware's existing "panic button self-test"
+  /// concept (already a sample event kind).
+  void triggerTestSos(SosTriggerType type) {
+    _sosEventController.add(
+      SosEvent(
+        type: type,
+        severityScore: type == SosTriggerType.crashImpact ? 84 : 90,
+        confirmedBy: type == SosTriggerType.crashImpact ? const ['mpu6050', 'piezo'] : const ['panic_button'],
+        timestampDeviceMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
 }

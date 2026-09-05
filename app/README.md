@@ -14,11 +14,15 @@ app/
 ├── lib/
 │   ├── main.dart
 │   ├── theme/          # colors.dart, typography.dart, app_theme.dart -- 05_DESIGN.md §1 tokens
-│   ├── models/         # HelmetStatus, DriverEvent, TrendPoint, DriverProfile, DeviceHealth
-│   ├── services/       # HelmetDataService (the seam) + MockHelmetDataService (sample data)
-│   ├── widgets/         # the component checklist from 05_DESIGN.md §4
-│   └── screens/        # Home, Trends, Alerts, Profile + RootShell (bottom nav)
-└── test/widget_test.dart
+│   ├── models/         # HelmetStatus, DriverEvent, TrendPoint, DriverProfile, DeviceHealth,
+│   │                   # SosEvent, SosDispatch, GeoLocation
+│   ├── logic/          # framework-agnostic, host-tested pure Dart (mirrors firmware/src/core/):
+│   │                   # RideBehaviorScorer, FatigueNudgeEngine, SosRelay
+│   ├── services/       # HelmetDataService (the seam) + MockHelmetDataService (sample data);
+│   │                   # LocationProvider, SosTransport (the SOS relay's hardware seams)
+│   ├── widgets/         # the component checklist from 05_DESIGN.md §4, plus SosDispatchBanner
+│   └── screens/        # Home, Trends, Alerts, Profile + RootShell (bottom nav, owns SosRelay)
+└── test/
 ```
 
 `HelmetDataService` (`lib/services/helmet_data_service.dart`) is the single
@@ -63,13 +67,21 @@ Every screen is real, data-driven Flutter code. What's behind it:
 | Safety score, weekly trend, Trends-tab harsh-event breakdown | **Real computation** — `lib/logic/ride_behavior_scorer.dart`, fed by sample per-day harsh-event rates (`MockHelmetDataService._weeklyRideInputs`). Weights are PROVISIONAL, not fitted to real fleet data. |
 | Fatigue watch card, "break suggested in" countdown, fatigue-nudge Alerts entries | **Real computation** — `lib/logic/fatigue_nudge_engine.dart`, fed by a simulated continuous-riding clock. Threshold (3h) is PROVISIONAL. |
 | `HelmetStatus`'s remaining fields (helmet worn, pre-ride, BLE link, battery) | `MockHelmetDataService` — sample values |
-| Alert history (aside from live fatigue nudges), compliance, profile, device health | `MockHelmetDataService` — static sample data |
+| Alert history (aside from live fatigue nudges + SOS outcomes), compliance, profile, device health | `MockHelmetDataService` — static sample data |
+| SOS relay dispatch logic (locating → data+SMS channels → sent/failed), the live status banner, logging the outcome to Alerts | **Real** — `lib/logic/sos_relay.dart` + `lib/widgets/sos_dispatch_banner.dart`, wired in `RootShell` |
+| The SOS *trigger* itself, GPS fixes, SMS/data sending | Simulated — `MockHelmetDataService.triggerTestSos()` (Profile screen's "Self-test" section), `MockLocationProvider`, `MockSosTransport` |
 
-`RideBehaviorScorer` and `FatigueNudgeEngine` are framework-agnostic pure
-Dart (no Flutter imports) so they're unit-tested directly
-(`test/ride_behavior_scorer_test.dart`, `test/fatigue_nudge_engine_test.dart`)
-and can be re-tuned or fed real telemetry later without touching a screen.
+`RideBehaviorScorer`, `FatigueNudgeEngine`, and `SosRelay` are all
+framework-agnostic pure Dart (no Flutter imports) so they're unit-tested
+directly (`test/ride_behavior_scorer_test.dart`,
+`test/fatigue_nudge_engine_test.dart`, `test/sos_relay_test.dart`) and can
+be re-tuned or fed real telemetry/hardware later without touching a screen.
 
 None of this is wired to the Phase 2 firmware's real BLE contract yet —
 that requires the physical hardware bring-up (`firmware/docs/WIRING.md`)
-to exist first, per `04_PHASES.md` Phase 4.
+to exist first, per `04_PHASES.md` Phase 4. The SOS relay's own logic
+(`SosRelay`) doesn't change when that lands — only
+`watchConfirmedSosEvents()`'s implementation, and `LocationProvider` /
+`SosTransport` on a real mobile build (`geolocator` for GPS; a native SMS
+plugin or backend gateway for data/SMS — neither is buildable from this
+web-only environment).

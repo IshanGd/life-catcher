@@ -59,9 +59,13 @@ class DriverProfileCard extends StatelessWidget {
         const SizedBox(height: 10),
         _row(
           'Emergency contact',
-          profile.emergencyContactSet ? 'Set ✓' : 'Not set',
+          profile.emergencyContactSet ? '${profile.emergencyContactName} ✓' : 'Not set',
           valueColor: profile.emergencyContactSet ? AppColors.green : AppColors.red,
         ),
+        if (profile.emergencyContactSet) ...[
+          const SizedBox(height: 10),
+          _row('Contact number', profile.emergencyContactPhone!, mono: true),
+        ],
       ],
     );
   }

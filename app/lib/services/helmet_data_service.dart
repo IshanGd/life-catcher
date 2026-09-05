@@ -2,6 +2,7 @@ import '../models/device_health.dart';
 import '../models/driver_event.dart';
 import '../models/driver_profile.dart';
 import '../models/helmet_status.dart';
+import '../models/sos_event.dart';
 import '../models/trend.dart';
 
 /// The single seam between hardware and UI (02_ARCHITECTURE.md §5): every
@@ -32,4 +33,15 @@ abstract class HelmetDataService {
   Future<DriverProfile> driverProfile();
 
   Future<DeviceHealth> deviceHealth();
+
+  /// Fires once per SOS that finishes fusion-confirmed and non-cancelled
+  /// (firmware: SosStateMachine's `confirmed: true` event,
+  /// 02_ARCHITECTURE.md §4). [SosRelay] (lib/logic/sos_relay.dart) is the
+  /// only consumer -- everything from here is the phone-side relay (ADR-1).
+  Stream<SosEvent> watchConfirmedSosEvents();
+
+  /// Log a completed SOS dispatch back into the event history so it's part
+  /// of the audit trail (03_RULES.md: never let an SOS outcome go
+  /// unlogged), the same way a cancellation always gets its own event.
+  void recordSosDispatchOutcome(DriverEvent event);
 }

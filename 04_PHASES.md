@@ -226,6 +226,25 @@ existed — see the Phase 0 correction above):
   Trends-tab breakdown are now genuinely computed from that data, not
   hardcoded — a fired fatigue nudge shows up as a real event in the Alerts
   feed, not just a canned historical row.
+- **SOS relay via phone data/SMS + GPS**, implemented and verified
+  end-to-end. `SosRelay` (`app/lib/logic/sos_relay.dart`, framework-agnostic,
+  6 host tests) is the dispatcher: on a fusion-confirmed, non-cancelled SOS
+  (`HelmetDataService.watchConfirmedSosEvents()` — mirrors the firmware's
+  `EventPayload{confirmed:true}`), it gets a GPS fix (`LocationProvider`
+  seam) and relays through **both** a data channel and SMS
+  (`SosTransport` seam) per 01_REQUIREMENTS.md — either succeeding counts
+  as sent; both failing surfaces as `failed`, never a silent drop. A
+  missing GPS fix does not block the alert. `SosDispatchBanner`
+  (`app/lib/widgets/`) shows live locating → sending → sent/failed status
+  across every tab (mounted in `RootShell`, survives a tab switch), with
+  the location and sensor-fusion trail (e.g. "mpu6050 + piezo") as a trust
+  signal; a completed dispatch is logged into the Alerts feed for real via
+  `recordSosDispatchOutcome`. Verified live in-browser: triggering a test
+  SOS from the Profile screen's self-test section produced a correct
+  banner and a matching Alerts-feed entry. `LocationProvider` and
+  `SosTransport` are both mocked — a real implementation needs a mobile
+  build (`geolocator` for GPS; a native SMS plugin or backend gateway for
+  the data/SMS channels), which this web-only environment can't provide.
 
 **Still to do:**
 - Replace `MockHelmetDataService`'s simulated inputs (per-day harsh-event
@@ -237,12 +256,16 @@ existed — see the Phase 0 correction above):
 - Re-tune `RideBehaviorScorer`'s weights and `FatigueNudgeEngine`'s 3h
   threshold against real ride/shift data once it exists (04_PHASES.md
   Phase 6) — both are PROVISIONAL hand-picked values today.
-- Implement SOS relay via phone data/SMS + phone GPS.
+- Wire `HelmetDataService.watchConfirmedSosEvents()` to a real BLE-backed
+  implementation once Phase 2 hardware exists, and implement real
+  `LocationProvider` / `SosTransport` on a mobile build — `SosRelay`
+  itself doesn't need to change.
 
 **Exit criteria:** the app screens are backed by real device data and a
-real (not simulated) SOS path, tested end-to-end. **Not yet met** — the
-screens exist and are correct against the spec, but every data source
-behind them is still sample data.
+real (not simulated) SOS path, tested end-to-end. **Partially met** — the
+SOS relay logic and UI are real and tested end-to-end against a simulated
+trigger; every data source (including the SOS trigger itself) is still
+sample/simulated pending Phase 2 hardware.
 
 ### Phase 5 — Fleet-Ops Dashboard
 - Build against the now-complete spec in `05_DESIGN.md` §3: the three

@@ -9,7 +9,8 @@ class DriverProfile {
     required this.vehicleType,
     required this.deviceId,
     required this.pairingStatus,
-    required this.emergencyContactSet,
+    this.emergencyContactName,
+    this.emergencyContactPhone,
   });
 
   final String name;
@@ -18,5 +19,13 @@ class DriverProfile {
   final String vehicleType;
   final String deviceId;
   final PairingStatus pairingStatus;
-  final bool emergencyContactSet;
+
+  /// null == not set. 01_REQUIREMENTS.md's SOS relay sends here on a
+  /// confirmed crash/panic event (lib/logic/sos_relay.dart) -- so unlike
+  /// the Phase 4 "Set ✓ / Not set" pill (05_DESIGN.md §2.4), this needs the
+  /// actual contact, not just a boolean.
+  final String? emergencyContactName;
+  final String? emergencyContactPhone;
+
+  bool get emergencyContactSet => emergencyContactPhone != null;
 }
