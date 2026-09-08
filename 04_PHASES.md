@@ -50,11 +50,15 @@ needs low-speed tip-over data, real pothole data, and controlled drop-tests
    *trustworthy* crash model — the thing pilot pitch and insurer trust
    depend on — still needs low-speed tip-over data, real Indian-road pothole
    data, and controlled drop-tests (blocked on Phase 2 hardware).
-2. **Physical prototype build.** Every hardware row is still at "design,"
-   not "prototype" — nothing has been soldered or assembled yet.
+2. **Physical prototype build.** The firmware for every sensor compiles
+   clean for the real `esp32dev` target and is host-tested, but nothing
+   has been soldered or assembled yet — no board has ever been flashed.
+   The build is scoped (2026-09) as **Phase 2 sensors + the MQ-3**
+   together; parts list is `firmware/docs/BOM.md` §1 + §7.
 3. **Alcohol sensor breath-chamber design.** The one hardware piece with an
    unresolved physical-design question (mouthpiece/hygiene), not just a
-   wiring task.
+   wiring task — separate from the MQ-3 module bring-up, which the Phase 2
+   build covers.
 4. **Pilot partner outreach.** The GTM path is defined but has zero real-
    world traction; this can start in parallel with hardware work, not after.
 5. **Data-use governance policy.** Must be drafted and agreed with the first
@@ -147,15 +151,25 @@ breaks PlatformIO's `pip install --target` for esptoolpy — fix is
 `PIP_USER=no`, documented in `firmware/README.md`.) `firmware.bin` exists
 but has not been flashed to a board — no hardware yet.
 
+**Pre-assembly prep — done (2026-09):** the wiring diagram
+(`firmware/docs/wiring-diagram.svg`) now includes the MQ-3 (GPIO36 analog,
+GPIO23 heater-enable through a transistor); `tools/ble_probe.py` gained an
+`s` key that sends `start_check` so the Phase 3 alcohol path can be
+exercised from the desktop without the app. Build scope decided:
+**Phase 2 sensors + the MQ-3 together** (order BOM §1 + §7).
+
 **Still to do (needs physical hardware — the actual Phase 2 work):**
-- Assemble MPU6050 + piezo + FSR + ESP32 + panic button + buzzer per
-  `01_REQUIREMENTS.md` §4.1 / `firmware/docs/WIRING.md`. Panic button first.
-- Bring-up on the bench: verify each sensor, then the full
-  crash-fusion → cancel-window → BLE path against `ble_probe.py`.
-- Tune `crash_fusion.cpp` thresholds on real ride/drop data; feed that data
-  back to Phase 1.
+- Assemble MPU6050 + piezo + FSR + ESP32 + panic button + buzzer **+ MQ-3**
+  per `firmware/docs/WIRING.md` / `wiring-diagram.svg`. Panic button first.
+- Bring-up on the bench in the `WIRING.md` order: each sensor, then the
+  full crash-fusion → cancel-window → BLE path against `ble_probe.py`,
+  then the MQ-3 (`CAL` for the baseline, then `s`/`start_check`).
+- Tune `crash_fusion.cpp` and `cfg::mq3` thresholds on real ride/drop /
+  breath-sample data; feed the crash data back to Phase 1.
 - Package into a wearable form on a helmet shell (raise the BIS/ISI
-  re-certification question from `06_GOVERNANCE.md` §6 here).
+  re-certification question from `06_GOVERNANCE.md` §6 here). The
+  breath-sampling chamber (mouthpiece/hygiene) is still open and does not
+  block bench bring-up.
 
 **Exit criteria:** a working, wearable prototype relaying live sensor data
 over BLE to a test harness or the app.
@@ -189,18 +203,21 @@ over BLE to a test harness or the app.
   end-to-end, not tuned against a real MQ-3 yet.
 
 **Still to do (needs physical hardware):**
+- The MQ-3 module is now wired as part of the Phase 2 build
+  (`firmware/docs/wiring-diagram.svg`, `WIRING.md` bring-up step 6): run
+  `CAL` for a first live per-unit baseline, then `s`/`start_check` from
+  `ble_probe.py`, then re-tune `cfg::mq3::kWarmupMs` /
+  `kAlcoholRatioThreshold` against known clean vs. alcohol-dosed breath
+  samples.
 - Design and prototype the enclosed breath-sampling chamber (mouthpiece,
   hygiene handling) — the unresolved physical-design piece; nothing in the
-  firmware above depends on this being solved first.
-- Wire a real MQ-3, run `CAL` for a first live per-unit baseline, and
-  re-tune `cfg::mq3::kWarmupMs` / `kAlcoholRatioThreshold` against known
-  clean vs. alcohol-dosed breath samples.
+  firmware or the bench bring-up above depends on this being solved first.
 
 **Exit criteria:** a repeatable, documented per-unit calibration process and
 a working pre-ride check-in flow on real hardware. The calibration process
 and check-in flow are implemented and documented; "on real hardware" is
-still open, gated on a physical MQ-3 (not the breath chamber, which can lag
-behind — see `firmware/docs/BOM.md` §"MQ-3 (Phase 3)").
+still open, gated on the Phase 2 bench bring-up (which now includes the
+MQ-3). The breath chamber can lag behind — see `firmware/docs/BOM.md` §7.
 
 ### Phase 4 — Companion app: real functionality
 

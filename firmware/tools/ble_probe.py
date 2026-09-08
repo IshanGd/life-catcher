@@ -2,14 +2,18 @@
 """Desktop BLE bring-up client for the Smart Helmet prototype.
 
 Connects to the helmet, prints STATUS and EVENT notifications as they arrive,
-and lets you send the app-side commands (cancel / ack) from the keyboard.
-This stands in for the companion app during Phase 2 hardware bring-up.
+and lets you send the app-side commands (cancel / ack / start_check) from the
+keyboard. This stands in for the companion app during Phase 2 + Phase 3
+hardware bring-up.
 
     pip install bleak
     python ble_probe.py            # scan + connect to the first SmartHelmet-*
     python ble_probe.py --address AA:BB:CC:DD:EE:FF
 
-Keys while running:  c = send cancel   a = send ack   q = quit
+Keys while running:
+    c = send cancel        a = send ack
+    s = send start_check   (begins the Phase 3 alcohol pre-ride check-in)
+    q = quit
 """
 from __future__ import annotations
 
@@ -60,6 +64,9 @@ async def _stdin_commands(client: BleakClient) -> None:
         elif key == "a":
             await client.write_gatt_char(CMD, b'{"cmd":"ack"}', response=True)
             print("  -> sent ack")
+        elif key == "s":
+            await client.write_gatt_char(CMD, b'{"cmd":"start_check"}', response=True)
+            print("  -> sent start_check (warm-up ~20 s, then it samples)")
 
 
 async def main() -> None:
@@ -72,7 +79,7 @@ async def main() -> None:
         print(f"connected: {client.is_connected}")
         await client.start_notify(STATUS, _on_status)
         await client.start_notify(EVENT, _on_event)
-        print("streaming. keys: c=cancel  a=ack  q=quit")
+        print("streaming. keys: c=cancel  a=ack  s=start_check  q=quit")
         try:
             await _stdin_commands(client)
         finally:

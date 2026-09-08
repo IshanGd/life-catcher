@@ -10,9 +10,11 @@ Reference board: **generic ESP32 DevKit v1 (30-pin)**. Pin numbers are GPIO
 numbers and live in [`../include/pins.h`](../include/pins.h) — edit there if
 your board differs, keep this table in sync.
 
-Sensors match the hardware table in `01_REQUIREMENTS.md` §4.1. The MQ-3
-alcohol sensor and its breath chamber are **Phase 3** and are not part of
-this build.
+Sensors match the hardware table in `01_REQUIREMENTS.md` §4.1. This build
+includes the MQ-3 alcohol sensor (Phase 3) alongside the Phase 2 sensors —
+the bare module only; the breath-sampling chamber (mouthpiece / hygiene)
+is a separate, still-open physical-design question and is not needed for
+bench bring-up. See §"Alcohol pre-ride check" below.
 
 | Component | ESP32 pin | Notes |
 |---|---|---|
@@ -27,8 +29,8 @@ this build.
 | Buzzer | GPIO27 | active buzzer (+ to pin, − to GND) or passive via a transistor. |
 | Status LED | GPIO2 | onboard LED on most DevKits; solid = BLE linked, blinking = link lost. |
 | Battery sense | GPIO32 | optional; divider from VBAT. Set `kVbatWired = true` in `main.cpp` once wired. |
-| MQ-3 analog out | GPIO36 | input-only ADC1 pin (SVP); module's onboard load resistor, no external divider needed. Phase 3 — see §"Alcohol pre-ride check" below. |
-| MQ-3 heater enable | GPIO23 | drives a small switch transistor for the ~150 mA heater — **do not** wire the heater straight to a GPIO. |
+| MQ-3 analog out (AO) | GPIO36 | input-only ADC1 pin (SVP); module's onboard load resistor, no external divider needed. See §"Alcohol pre-ride check" below. |
+| MQ-3 heater enable | GPIO23 | GPIO → 1 kΩ → base of a small NPN/MOSFET switching the module's V+ (~150 mA heater). **Do not** wire the heater straight to a GPIO. |
 
 **Power**: bench USB for bring-up. A single-cell LiPo + charger/boost is a
 Phase 2 packaging task, not a wiring-diagram item.
@@ -88,3 +90,8 @@ electronics.
 4. **FSR.** Squeeze → status `helmet_worn` flips to `true`.
 5. **BLE.** Pair from `tools/ble_probe.py` or a generic BLE app; watch the
    STATUS notifications and trigger an event.
+6. **MQ-3.** Serial `CAL` in clean air for the per-unit baseline (see
+   §"Alcohol pre-ride check"), then from `ble_probe.py` press `s`
+   (`start_check`) → after the ~20 s warm-up you should see
+   `pre_ride_passed` in STATUS flip, or an `alcohol_flag` EVENT if the
+   sample is over the baseline ratio.

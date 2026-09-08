@@ -2,7 +2,8 @@
 
 Bench prototype on a breadboard. This is **not** the production BOM — it's
 what you buy to bring up the firmware and validate the sensor + fusion +
-SOS + BLE path. The MQ-3 alcohol sensor is **Phase 3** and is not here.
+SOS + BLE path. This build **includes the MQ-3 alcohol sensor** (Phase 3
+firmware is done — see §7); order §1 + §7 together.
 
 Prices are rough India street prices (Sept 2026), for planning only. Common
 sources: robu.in, robocraze.com, quartzcomponents.com, Amazon.in, or a local
@@ -247,14 +248,13 @@ against real data with `pio run -e sim` (see the firmware README).
 
 ---
 
-## 7. Phase 3 (optional, later) — MQ-3 alcohol pre-ride check
+## 7. MQ-3 alcohol pre-ride check (Phase 3 sensor, in this build)
 
-Not part of the Phase 2 bring-up. The firmware side (driver, per-unit
-calibration, check-in state machine) is written and host-tested — see
+Part of this build. The firmware side (driver, per-unit calibration,
+check-in state machine) is written and host-tested — see
 [`../src/core/preride_check.h`](../src/core/preride_check.h) and
-[`WIRING.md`](WIRING.md) §"Alcohol pre-ride check". You don't need any of
-this to keep working on Phase 2; buy it when you're ready to bring the
-alcohol path up on real hardware.
+[`WIRING.md`](WIRING.md) §"Alcohol pre-ride check". Bring it up last
+(WIRING.md bring-up order step 6), after the crash/panic path is verified.
 
 | # | Part | Spec | Qty | ~₹ | Notes |
 |---|------|------|-----|----|-------|

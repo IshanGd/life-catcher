@@ -1,16 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" font-family="'IBM Plex Mono', ui-monospace, monospace" style="color:#1b2430;background:#ffffff" role="img" aria-label="Wiring diagram: ESP32 DevKit to MPU6050 over I2C on GPIO21/22, clamped piezo on GPIO34, FSR divider on GPIO35, panic button on GPIO25, cancel button on GPIO26, buzzer on GPIO27, onboard LED on GPIO2; 3V3 and GND on the breadboard rails.">
-  <!-- Life Catcher smart helmet - Phase 2 breadboard wiring. Mirrors firmware/include/pins.h. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800" font-family="'IBM Plex Mono', ui-monospace, monospace" style="color:#1b2430;background:#ffffff" role="img" aria-label="Wiring diagram: ESP32 DevKit to MPU6050 over I2C on GPIO21/22, clamped piezo on GPIO34, FSR divider on GPIO35, panic button on GPIO25, cancel button on GPIO26, buzzer on GPIO27, onboard LED on GPIO2, MQ-3 alcohol sensor analog out on GPIO36 with heater enable on GPIO23 through a transistor; 3V3 and GND on the breadboard rails.">
+  <!-- Life Catcher smart helmet - Phase 2 + MQ-3 (Phase 3) breadboard wiring. Mirrors firmware/include/pins.h. -->
+
+  <!-- legend (top-left) -->
+  <g font-size="10" fill="currentColor" font-family="sans-serif">
+    <line x1="40" y1="40" x2="64" y2="40" stroke="#3b82f6" stroke-width="3"/><text x="70" y="44">digital (GPIO)</text>
+    <line x1="40" y1="60" x2="64" y2="60" stroke="#1a9d5a" stroke-width="3"/><text x="70" y="64">analog . ADC1 input</text>
+    <line x1="40" y1="80" x2="64" y2="80" stroke="#d83a45" stroke-width="3"/><text x="70" y="84">3V3 power</text>
+    <line x1="212" y1="40" x2="236" y2="40" stroke="#7b8794" stroke-width="3"/><text x="242" y="44">GND</text>
+    <line x1="212" y1="60" x2="236" y2="60" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5 4"/><text x="242" y="64">optional connection</text>
+    <circle cx="224" cy="80" r="3.4" fill="#7b8794"/><text x="242" y="84">joined (crossings are not)</text>
+  </g>
+
   <!-- power rails -->
-  <line x1="842" y1="112" x2="842" y2="668" stroke="#7b8794" stroke-width="3"/>
-  <line x1="858" y1="112" x2="858" y2="668" stroke="#d83a45" stroke-width="3"/>
+  <line x1="842" y1="112" x2="842" y2="770" stroke="#7b8794" stroke-width="3"/>
+  <line x1="858" y1="112" x2="858" y2="770" stroke="#d83a45" stroke-width="3"/>
   <line x1="834" y1="112" x2="850" y2="112" stroke="#7b8794" stroke-width="3"/>
   <line x1="850" y1="112" x2="866" y2="112" stroke="#d83a45" stroke-width="3"/>
-  <text x="828" y="392" transform="rotate(-90 828 392)" text-anchor="middle" fill="#7b8794" font-size="10.5">GND rail  (breadboard -)</text>
-  <text x="874" y="392" transform="rotate(-90 874 392)" text-anchor="middle" fill="#d83a45" font-size="10.5">3V3 rail  (breadboard +)</text>
+  <text x="828" y="441" transform="rotate(-90 828 441)" text-anchor="middle" fill="#7b8794" font-size="10.5">GND rail  (breadboard -)</text>
+  <text x="874" y="441" transform="rotate(-90 874 441)" text-anchor="middle" fill="#d83a45" font-size="10.5">3V3 rail  (breadboard +)</text>
 
   <!-- ESP32 -->
   <text x="125" y="102" text-anchor="middle" fill="currentColor" font-size="12" font-weight="500">ESP32-WROOM-32 . DevKit v1</text>
-  <rect x="40" y="120" width="170" height="450" rx="10" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="40" y="120" width="170" height="520" rx="10" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
   <text x="55" y="146" fill="#5c6672" font-size="9">3.3 V logic . USB power</text>
 
   <line x1="210" y1="150" x2="230" y2="150" stroke="#d83a45" stroke-width="2"/>
@@ -21,11 +32,13 @@
     <text x="200" y="230">GPIO21</text><text x="200" y="268">GPIO22</text><text x="200" y="306">GPIO4</text>
     <text x="200" y="344">GPIO34</text><text x="200" y="382">GPIO35</text><text x="200" y="420">GPIO25</text>
     <text x="200" y="458">GPIO26</text><text x="200" y="496">GPIO27</text><text x="200" y="534">GPIO2</text>
+    <text x="200" y="572">GPIO23</text><text x="200" y="610">GPIO36</text>
   </g>
   <g stroke="currentColor" stroke-width="1.4">
     <line x1="210" y1="226" x2="230" y2="226"/><line x1="210" y1="264" x2="230" y2="264"/><line x1="210" y1="302" x2="230" y2="302"/>
     <line x1="210" y1="340" x2="230" y2="340"/><line x1="210" y1="378" x2="230" y2="378"/><line x1="210" y1="416" x2="230" y2="416"/>
     <line x1="210" y1="454" x2="230" y2="454"/><line x1="210" y1="492" x2="230" y2="492"/><line x1="210" y1="530" x2="230" y2="530"/>
+    <line x1="210" y1="568" x2="230" y2="568"/><line x1="210" y1="606" x2="230" y2="606"/>
   </g>
   <text x="236" y="533" fill="#5c6672" font-family="sans-serif" font-size="9.5" font-style="italic">-&gt; onboard LED (no wiring)</text>
 
@@ -43,10 +56,13 @@
   <path d="M230,416 H310 V496 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
   <path d="M230,454 H322 V566 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
   <path d="M230,492 H334 V638 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <path d="M230,568 H300 V738 H418" fill="none" stroke="#3b82f6" stroke-width="1.8"/>
+  <path d="M230,606 H288 V762 H418" fill="none" stroke="#1a9d5a" stroke-width="1.8"/>
   <g font-size="9.5" text-anchor="end">
     <text x="414" y="188" fill="#3b82f6">21</text><text x="414" y="210" fill="#3b82f6">22</text><text x="414" y="232" fill="#3b82f6">4</text>
     <text x="414" y="313" fill="#1a9d5a">34</text><text x="414" y="409" fill="#1a9d5a">35</text>
     <text x="414" y="492" fill="#3b82f6">25</text><text x="414" y="562" fill="#3b82f6">26</text><text x="414" y="634" fill="#3b82f6">27</text>
+    <text x="414" y="734" fill="#3b82f6">23</text><text x="414" y="758" fill="#1a9d5a">36</text>
   </g>
 
   <!-- MPU6050 -->
@@ -117,20 +133,24 @@
   <path d="M810,622 H858" stroke="#d83a45" stroke-width="1.8" fill="none"/>
   <path d="M810,652 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
 
+  <!-- MQ-3 (Phase 3) -->
+  <rect x="430" y="684" width="380" height="96" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.3"/>
+  <text x="444" y="705" fill="currentColor" font-family="sans-serif" font-size="13" font-weight="600">MQ-3 . alcohol vapor screen (Phase 3)</text>
+  <text x="444" y="720" fill="#5c6672" font-family="sans-serif" font-size="10">gated pre-ride check . heater switched by a transistor (BOM 7)</text>
+  <g font-size="10.5" fill="currentColor">
+    <line x1="418" y1="738" x2="430" y2="738" stroke="#3b82f6" stroke-width="1.8"/><text x="436" y="742">heater EN -&gt; transistor base (1k)</text>
+    <line x1="418" y1="762" x2="430" y2="762" stroke="#1a9d5a" stroke-width="1.8"/><text x="436" y="766">AO . analog out -&gt; ADC1</text>
+    <text x="790" y="738" text-anchor="end">V+</text><circle cx="800" cy="734" r="3.2" fill="#d83a45"/>
+    <text x="790" y="766" text-anchor="end">GND</text><circle cx="800" cy="762" r="3.2" fill="#7b8794"/>
+  </g>
+  <path d="M810,734 H858" stroke="#d83a45" stroke-width="1.8" fill="none"/>
+  <path d="M810,762 H842" stroke="#7b8794" stroke-width="1.8" fill="none"/>
+
+  <!-- rail junction dots -->
   <g fill="#d83a45">
-    <circle cx="858" cy="114" r="2.6"/><circle cx="858" cy="180" r="2.6"/><circle cx="858" cy="300" r="2.6"/><circle cx="858" cy="396" r="2.6"/><circle cx="858" cy="622" r="2.6"/>
+    <circle cx="858" cy="114" r="2.6"/><circle cx="858" cy="180" r="2.6"/><circle cx="858" cy="300" r="2.6"/><circle cx="858" cy="396" r="2.6"/><circle cx="858" cy="622" r="2.6"/><circle cx="858" cy="734" r="2.6"/>
   </g>
   <g fill="#7b8794">
-    <circle cx="842" cy="126" r="2.6"/><circle cx="842" cy="208" r="2.6"/><circle cx="842" cy="334" r="2.6"/><circle cx="842" cy="430" r="2.6"/><circle cx="842" cy="496" r="2.6"/><circle cx="842" cy="566" r="2.6"/><circle cx="842" cy="652" r="2.6"/>
-  </g>
-
-  <!-- legend -->
-  <g font-size="10" fill="currentColor" font-family="sans-serif">
-    <line x1="48" y1="600" x2="72" y2="600" stroke="#3b82f6" stroke-width="3"/><text x="78" y="604">digital (GPIO)</text>
-    <line x1="48" y1="620" x2="72" y2="620" stroke="#1a9d5a" stroke-width="3"/><text x="78" y="624">analog . ADC1 input</text>
-    <line x1="48" y1="640" x2="72" y2="640" stroke="#d83a45" stroke-width="3"/><text x="78" y="644">3V3 power</text>
-    <line x1="48" y1="660" x2="72" y2="660" stroke="#7b8794" stroke-width="3"/><text x="78" y="664">GND</text>
-    <line x1="240" y1="600" x2="264" y2="600" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5 4"/><text x="270" y="604">optional connection</text>
-    <circle cx="252" cy="620" r="3.4" fill="#7b8794"/><text x="270" y="624">joined (crossings are not)</text>
+    <circle cx="842" cy="126" r="2.6"/><circle cx="842" cy="208" r="2.6"/><circle cx="842" cy="334" r="2.6"/><circle cx="842" cy="430" r="2.6"/><circle cx="842" cy="496" r="2.6"/><circle cx="842" cy="566" r="2.6"/><circle cx="842" cy="652" r="2.6"/><circle cx="842" cy="762" r="2.6"/>
   </g>
 </svg>
