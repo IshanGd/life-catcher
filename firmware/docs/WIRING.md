@@ -1,10 +1,14 @@
 # Phase 2 prototype — wiring
 
-**Diagram: [`wiring-diagram.svg`](wiring-diagram.svg).**
-**Parts list + full assembly walkthrough: [`BOM.md`](BOM.md).**
+**Diagrams:** [`wiring-pictorial.svg`](wiring-pictorial.svg) (assembly view —
+component illustrations + colour-coded wires) and
+[`wiring-diagram.svg`](wiring-diagram.svg) (exact-net schematic reference).
+**Parts list + full assembly walkthrough:** [`BOM.md`](BOM.md).
 This file is the quick pin reference.
 
-![Prototype wiring diagram](wiring-diagram.svg)
+![Pictorial wiring — assembly view](wiring-pictorial.svg)
+
+![Schematic wiring — exact-net reference](wiring-diagram.svg)
 
 Reference board: **generic ESP32 DevKit v1 (30-pin)**. Pin numbers are GPIO
 numbers and live in [`../include/pins.h`](../include/pins.h) — edit there if

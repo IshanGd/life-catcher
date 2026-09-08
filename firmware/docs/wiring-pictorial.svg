@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 812" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" style="color:#1b2430;background:#fdfdfb" role="img" aria-label="Pictorial breadboard wiring for the Life Catcher smart helmet prototype. An ESP32-WROOM-32 DevKit sits centre-right. Its left header carries the sensors on the DevKit's left column: MQ-3 alcohol sensor analog-out to GPIO36, clamped piezo to GPIO34, FSR divider to GPIO35, panic button to GPIO25, cancel button to GPIO26, active buzzer to GPIO27. Its right header carries 3V3 and GND to the breadboard rails, the MPU6050 GY-521 on I2C via GPIO21 and GPIO22, and the MQ-3 heater-switch transistor on GPIO23. Three inset schematics detail the piezo clamp, the FSR divider, and the MQ-3 heater switch.">
+  <defs>
+    <pattern id="holes" width="15" height="15" patternUnits="userSpaceOnUse"><circle cx="7.5" cy="7.5" r="1.5" fill="#c9c6bd"/></pattern>
+    <g id="btn">
+      <rect x="-11" y="-11" width="22" height="22" rx="3" fill="#26262b"/>
+      <circle cx="0" cy="0" r="5.5" fill="#3a3a41"/>
+      <g fill="#8a8d94"><rect x="-14" y="-10" width="3" height="6"/><rect x="11" y="-10" width="3" height="6"/><rect x="-14" y="4" width="3" height="6"/><rect x="11" y="4" width="3" height="6"/></g>
+    </g>
+    <g id="res">
+      <line x1="-26" y1="0" x2="26" y2="0" stroke="#8a8d94" stroke-width="1.6"/>
+      <rect x="-16" y="-6" width="32" height="12" rx="4" fill="#dcbb8c"/>
+      <rect x="-9" y="-6" width="2.4" height="12" fill="#5a3a1e"/><rect x="-3" y="-6" width="2.4" height="12" fill="#c0392b"/>
+      <rect x="4" y="-6" width="2.4" height="12" fill="#2b2b2b"/><rect x="10" y="-6" width="2.4" height="12" fill="#c8a24a"/>
+    </g>
+    <g id="npn">
+      <path d="M0,-13 A13,13 0 0,1 0,13 L-6,13 L-6,-13 Z" fill="#1c1c20"/>
+      <g stroke="#9a9da3" stroke-width="1.8"><line x1="-4" y1="9" x2="-4" y2="24"/><line x1="1" y1="12" x2="1" y2="24"/><line x1="6" y1="9" x2="6" y2="24"/></g>
+    </g>
+  </defs>
+
+  <text x="40" y="36" font-size="18" font-weight="700" fill="currentColor">Smart Helmet — pictorial wiring</text>
+  <text x="40" y="55" font-size="11.5" fill="#5c6672">Phase 2 sensors + MQ-3 . generic ESP32-WROOM-32 DevKit v1 (30-pin) . pin order follows your board's silkscreen . mirrors firmware/include/pins.h</text>
+
+  <!-- wire-colour key (top right) -->
+  <g font-size="10" fill="currentColor">
+    <text x="960" y="34" font-weight="700">Wire colours</text>
+    <line x1="960" y1="48" x2="986" y2="48" stroke="#d0342c" stroke-width="3"/><text x="992" y="52">3V3</text>
+    <line x1="960" y1="66" x2="986" y2="66" stroke="#4a4e57" stroke-width="3"/><text x="992" y="70">GND</text>
+    <line x1="960" y1="84" x2="986" y2="84" stroke="#2b7fff" stroke-width="3"/><text x="992" y="88">digital / I²C</text>
+    <line x1="1080" y1="48" x2="1106" y2="48" stroke="#1f9d55" stroke-width="3"/><text x="1112" y="52">analog (ADC1)</text>
+    <line x1="1080" y1="66" x2="1106" y2="66" stroke="#e8933a" stroke-width="3"/><text x="1112" y="70">heater enable</text>
+    <line x1="1080" y1="84" x2="1106" y2="84" stroke="#4a4e57" stroke-width="2" stroke-dasharray="4 3"/><text x="1112" y="88">optional</text>
+  </g>
+
+  <!-- ================= BREADBOARD POWER RAILS ================= -->
+  <rect x="40" y="556" width="1140" height="96" rx="10" fill="#f4f2ec" stroke="#d7d3c8" stroke-width="1.5"/>
+  <rect x="40" y="556" width="1140" height="96" rx="10" fill="url(#holes)"/>
+  <line x1="70" y1="576" x2="1150" y2="576" stroke="#d0342c" stroke-width="2.8"/>
+  <line x1="70" y1="590" x2="1150" y2="590" stroke="#3d68c4" stroke-width="2.8"/>
+  <line x1="70" y1="620" x2="1150" y2="620" stroke="#3d68c4" stroke-width="2.8"/>
+  <line x1="70" y1="634" x2="1150" y2="634" stroke="#d0342c" stroke-width="2.8"/>
+  <text x="1150" y="572" font-size="9.5" fill="#d0342c" text-anchor="end">+  3V3 rail</text>
+  <text x="1150" y="604" font-size="9.5" fill="#3d68c4" text-anchor="end">–  GND rail</text>
+  <text x="60" y="608" font-size="10" fill="#7b7f86">breadboard power rails . one common ground for everything . USB power on the ESP32 . (main tie-point columns omitted for clarity)</text>
+
+  <!-- ================= ESP32 DEVKIT (centre-right) ================= -->
+  <g>
+    <rect x="740" y="120" width="150" height="470" rx="9" fill="#1b1b20"/>
+    <rect x="795" y="106" width="40" height="18" rx="2" fill="#c7cad0"/><rect x="801" y="110" width="28" height="10" rx="1" fill="#8a8d94"/>
+    <path d="M758,138 H872 V224 H780 L758,202 Z" fill="#b9bdc5" stroke="#9a9da3" stroke-width="0.8"/>
+    <text x="815" y="186" font-size="9" fill="#5f6268" text-anchor="middle" font-weight="600">ESP32-WROOM-32</text>
+    <circle cx="770" cy="240" r="3" fill="#d0342c"/><circle cx="786" cy="240" r="3" fill="#3d9e57"/>
+    <text x="815" y="580" font-size="8.5" fill="#8d9096" text-anchor="middle">DEVKIT V1</text>
+    <rect x="740" y="256" width="14" height="300" fill="#0d0d10"/>
+    <rect x="876" y="256" width="14" height="300" fill="#0d0d10"/>
+
+    <!-- LEFT header = DevKit left column: sensors + buttons + buzzer -->
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="10" fill="#e9e8e4" text-anchor="end">
+      <text x="736" y="279">GPIO36 · VP</text><text x="736" y="319">GPIO34</text><text x="736" y="359">GPIO35</text>
+      <text x="736" y="399">GPIO25</text><text x="736" y="439">GPIO26</text><text x="736" y="479">GPIO27</text><text x="736" y="519">GND</text>
+    </g>
+    <g fill="#f4c451"><circle cx="747" cy="275" r="3.4"/><circle cx="747" cy="315" r="3.4"/><circle cx="747" cy="355" r="3.4"/><circle cx="747" cy="395" r="3.4"/><circle cx="747" cy="435" r="3.4"/><circle cx="747" cy="475" r="3.4"/><circle cx="747" cy="515" r="3.4"/></g>
+
+    <!-- RIGHT header = DevKit right column: power + I2C + MQ3 heater + LED -->
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="10" fill="#e9e8e4">
+      <text x="896" y="279">3V3</text><text x="896" y="319">GND</text><text x="896" y="359">GPIO2</text>
+      <text x="896" y="399">GPIO4</text><text x="896" y="439">GPIO21</text><text x="896" y="479">GPIO22</text><text x="896" y="519">GPIO23</text>
+    </g>
+    <g fill="#f4c451"><circle cx="883" cy="275" r="3.4"/><circle cx="883" cy="315" r="3.4"/><circle cx="883" cy="355" r="3.4"/><circle cx="883" cy="395" r="3.4"/><circle cx="883" cy="435" r="3.4"/><circle cx="883" cy="475" r="3.4"/><circle cx="883" cy="515" r="3.4"/></g>
+    <text x="815" y="356" font-size="7.5" fill="#6b6e74" text-anchor="middle" font-style="italic">GPIO2 = onboard LED, no wiring</text>
+  </g>
+
+  <!-- ================= MQ-3 (upper left, → GPIO36) ================= -->
+  <g>
+    <rect x="70" y="110" width="180" height="150" rx="7" fill="#2f6fb0" stroke="#215487" stroke-width="1"/>
+    <circle cx="140" cy="174" r="40" fill="#a7abb2" stroke="#83878e" stroke-width="1.5"/>
+    <circle cx="140" cy="174" r="28" fill="none" stroke="#83878e" stroke-width="1"/>
+    <g stroke="#8b8f96" stroke-width="0.8"><line x1="114" y1="160" x2="166" y2="188"/><line x1="114" y1="174" x2="166" y2="174"/><line x1="114" y1="188" x2="166" y2="160"/><line x1="127" y1="147" x2="153" y2="201"/><line x1="153" y1="147" x2="127" y2="201"/></g>
+    <rect x="206" y="130" width="24" height="24" rx="3" fill="#1e5a94"/><line x1="208" y1="142" x2="228" y2="142" stroke="#cfe0f0" stroke-width="1.6"/>
+    <text x="160" y="126" font-size="10" fill="#e6eff7" font-weight="600" text-anchor="middle">MQ-3</text>
+    <rect x="86" y="250" width="150" height="12" fill="#0d0d10"/>
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="8.5" fill="#3b3b3b" text-anchor="middle"><text x="100" y="278">VCC</text><text x="138" y="278">GND</text><text x="176" y="278">DO</text><text x="214" y="278">AO</text></g>
+    <g fill="#c8a24a"><circle cx="100" cy="256" r="3"/><circle cx="138" cy="256" r="3"/><circle cx="176" cy="256" r="3"/><circle cx="214" cy="256" r="3"/></g>
+    <text x="262" y="140" font-size="8.5" fill="#7b7f86">alcohol vapour screen . gated</text>
+    <text x="262" y="153" font-size="8.5" fill="#7b7f86">pre-ride check only. DO unused.</text>
+    <text x="262" y="166" font-size="8.5" fill="#7b7f86">V+ via a transistor — inset C.</text>
+  </g>
+
+  <!-- ================= PIEZO (→ GPIO34, inset A) ================= -->
+  <g>
+    <circle cx="120" cy="330" r="30" fill="#c8a24a" stroke="#a5822f" stroke-width="1.5"/>
+    <circle cx="120" cy="330" r="18" fill="#efe9dc"/><circle cx="120" cy="330" r="3.6" fill="#c8a24a"/>
+    <path d="M120,330 L150,312" stroke="#c0392b" stroke-width="2" fill="none"/>
+    <path d="M120,360 L150,372" stroke="#333" stroke-width="2" fill="none"/>
+    <text x="120" y="378" font-size="9" fill="#5c6672" text-anchor="middle">piezo 27 mm</text>
+  </g>
+
+  <!-- ================= FSR (→ GPIO35, inset B) ================= -->
+  <g>
+    <rect x="250" y="322" width="42" height="42" rx="10" fill="#8b8f96" stroke="#6f747c" stroke-width="1.3"/>
+    <circle cx="271" cy="343" r="12" fill="none" stroke="#6f747c" stroke-width="1"/>
+    <rect x="264" y="362" width="14" height="34" fill="#9a9ea5"/>
+    <rect x="261" y="392" width="7" height="12" fill="#b87333"/><rect x="274" y="392" width="7" height="12" fill="#b87333"/>
+    <text x="271" y="418" font-size="9" fill="#5c6672" text-anchor="middle">FSR (RP-C18.3)</text>
+  </g>
+
+  <!-- ================= BUTTONS + BUZZER (→ GPIO25/26/27) ================= -->
+  <g>
+    <use href="#btn" x="150" y="470"/><text x="150" y="500" font-size="9" fill="#5c6672" text-anchor="middle" font-weight="600">PANIC</text>
+    <use href="#btn" x="270" y="470"/><text x="270" y="500" font-size="9" fill="#5c6672" text-anchor="middle" font-weight="600">CANCEL</text>
+    <text x="210" y="515" font-size="8" fill="#8a8d94" text-anchor="middle">momentary . INPUT_PULLUP . other leg → GND</text>
+  </g>
+  <g>
+    <ellipse cx="400" cy="470" rx="16" ry="7" fill="#25252a"/><rect x="384" y="470" width="32" height="24" fill="#1b1b20"/><ellipse cx="400" cy="494" rx="16" ry="7" fill="#141418"/>
+    <circle cx="400" cy="466" r="2.5" fill="#3a3a41"/><text x="414" y="466" font-size="9" fill="#d0342c">+</text>
+    <line x1="394" y1="500" x2="394" y2="512" stroke="#9a9da3" stroke-width="1.6"/><line x1="406" y1="500" x2="406" y2="512" stroke="#9a9da3" stroke-width="1.6"/>
+    <text x="400" y="528" font-size="9" fill="#5c6672" text-anchor="middle">active buzzer</text>
+    <text x="400" y="540" font-size="8" fill="#8a8d94" text-anchor="middle">+ → GPIO27 . – → GND</text>
+  </g>
+
+  <!-- ================= MPU6050 (right, → GPIO21/22) ================= -->
+  <g>
+    <rect x="985" y="150" width="170" height="96" rx="6" fill="#6a3fa0" stroke="#4c2c74" stroke-width="1"/>
+    <rect x="1011" y="176" width="40" height="40" rx="3" fill="#1e1e22"/><rect x="1071" y="188" width="16" height="10" rx="2" fill="#c7cad0"/>
+    <text x="1070" y="140" font-size="10" fill="#4c2c74" font-weight="600" text-anchor="middle">GY-521 · MPU6050</text>
+    <!-- header along the LEFT edge, facing the ESP32 -->
+    <rect x="979" y="158" width="12" height="80" fill="#0d0d10"/>
+    <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="8.5" fill="#3b3b3b" text-anchor="start">
+      <text x="996" y="169">VCC</text><text x="996" y="189">GND</text><text x="996" y="209">SCL</text><text x="996" y="229">SDA</text>
+    </g>
+    <g fill="#c8a24a"><circle cx="985" cy="166" r="3"/><circle cx="985" cy="186" r="3"/><circle cx="985" cy="206" r="3"/><circle cx="985" cy="226" r="3"/></g>
+    <text x="1070" y="262" font-size="8.5" fill="#7b7f86" text-anchor="middle">AD0 → GND sets I²C addr 0x68</text>
+  </g>
+
+  <!-- ================= WIRES ================= -->
+  <!-- LEFT header: sensors + buttons + buzzer -->
+  <path d="M214,256 C214,220 320,240 480,262 C560,272 660,275 743,275" fill="none" stroke="#1f9d55" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="300" y="252" font-size="8.5" fill="#1f9d55">MQ-3 AO → GPIO36 (ADC1)</text>
+  <path d="M150,312 C300,300 560,315 743,315" fill="none" stroke="#1f9d55" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="300" y="308" font-size="8.5" fill="#1f9d55">piezo clamp node → GPIO34 (inset A)</text>
+  <path d="M292,352 C420,350 600,355 743,355" fill="none" stroke="#1f9d55" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="330" y="348" font-size="8.5" fill="#1f9d55">FSR divider node → GPIO35 (inset B)</text>
+  <path d="M163,466 C280,430 560,395 743,395" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="330" y="392" font-size="8.5" fill="#2b7fff">PANIC → GPIO25</text>
+  <path d="M283,466 C420,440 600,435 743,435" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="360" y="432" font-size="8.5" fill="#2b7fff">CANCEL → GPIO26</text>
+  <path d="M406,506 C520,485 640,475 743,475" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="470" y="472" font-size="8.5" fill="#2b7fff">buzzer + → GPIO27</text>
+
+  <!-- button/buzzer other leg -> GND rail -->
+  <path d="M137,478 C120,520 130,565 150,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linecap="round"/>
+  <path d="M257,478 C245,520 250,565 260,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linecap="round"/>
+  <path d="M394,512 C388,545 390,570 396,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linecap="round"/>
+  <!-- ESP32 GND (left) -> GND rail -->
+  <path d="M744,515 C700,515 680,565 660,590" fill="none" stroke="#4a4e57" stroke-width="2.4" stroke-linecap="round"/>
+
+  <!-- RIGHT header: power + I2C + MQ3 heater -->
+  <path d="M886,275 C930,275 935,560 950,576" fill="none" stroke="#d0342c" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M886,315 C918,315 920,550 935,590" fill="none" stroke="#4a4e57" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M886,435 C920,435 945,232 979,226" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="898" y="430" font-size="8.5" fill="#2b7fff">GPIO21 → SDA</text>
+  <path d="M886,475 C930,475 955,212 979,206" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="898" y="470" font-size="8.5" fill="#2b7fff">GPIO22 → SCL</text>
+  <path d="M886,515 C950,515 985,610 1015,652" fill="none" stroke="#e8933a" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="898" y="533" font-size="8.5" fill="#e8933a">GPIO23 → 1k → transistor base (inset C)</text>
+
+  <!-- MPU power to rails -->
+  <path d="M985,166 C968,166 966,555 958,576" fill="none" stroke="#d0342c" stroke-width="2" stroke-linecap="round"/>
+  <path d="M985,186 C975,186 974,560 966,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- MQ-3 power -->
+  <path d="M100,262 C80,320 90,540 110,576" fill="none" stroke="#d0342c" stroke-width="2" stroke-linecap="round"/>
+  <path d="M138,262 C130,330 135,558 145,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- ================= INSET SCHEMATICS ================= -->
+  <g font-size="9" fill="currentColor" transform="translate(0 -120)">
+    <rect x="40" y="792" width="360" height="118" rx="8" fill="#f7f6f2" stroke="#d7d3c8"/>
+    <text x="56" y="812" font-weight="700">A · Piezo input clamp → GPIO34</text>
+    <circle cx="86" cy="852" r="11" fill="none" stroke="currentColor" stroke-width="1.2"/><text x="86" y="855" text-anchor="middle" font-size="7">PZ</text>
+    <line x1="86" y1="863" x2="86" y2="880" stroke="currentColor" stroke-width="1.2"/>
+    <line x1="86" y1="880" x2="300" y2="880" stroke="currentColor" stroke-width="1.2"/>
+    <line x1="150" y1="852" x2="150" y2="880" stroke="currentColor" stroke-width="1.2"/>
+    <rect x="142" y="832" width="16" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/><text x="164" y="846" font-size="7.5">1 MΩ</text>
+    <line x1="150" y1="832" x2="150" y2="822" stroke="currentColor" stroke-width="1.2"/><line x1="150" y1="822" x2="300" y2="822" stroke="currentColor" stroke-width="1.2"/>
+    <polygon points="216,816 216,828 226,822" fill="currentColor"/><line x1="226" y1="814" x2="226" y2="830" stroke="currentColor" stroke-width="1.2"/>
+    <line x1="226" y1="822" x2="300" y2="822" stroke="#d0342c" stroke-width="1.2"/><line x1="300" y1="812" x2="300" y2="890" stroke="currentColor" stroke-width="1.2"/>
+    <text x="304" y="816" fill="#d0342c" font-size="7.5">3V3</text>
+    <line x1="86" y1="880" x2="86" y2="896" stroke="#4a4e57" stroke-width="1.2"/><polygon points="80,892 92,892 86,902" fill="currentColor"/><text x="60" y="900" fill="#4a4e57" font-size="7.5">GND</text>
+    <line x1="300" y1="852" x2="336" y2="852" stroke="#1f9d55" stroke-width="1.6"/><text x="300" y="846" fill="#1f9d55" font-size="7.5">→ GPIO34</text>
+    <line x1="300" y1="822" x2="300" y2="852" stroke="currentColor" stroke-width="1.2"/>
+    <text x="340" y="852" font-size="7" fill="#7b7f86" transform="rotate(90 340 852)">Schottky ×2</text>
+  </g>
+  <g font-size="9" fill="currentColor" transform="translate(0 -120)">
+    <rect x="420" y="792" width="330" height="118" rx="8" fill="#f7f6f2" stroke="#d7d3c8"/>
+    <text x="436" y="812" font-weight="700">B · FSR voltage divider → GPIO35</text>
+    <line x1="480" y1="826" x2="480" y2="838" stroke="#d0342c" stroke-width="1.4"/><text x="462" y="824" fill="#d0342c" font-size="7.5">3V3</text>
+    <rect x="466" y="838" width="28" height="30" rx="4" fill="none" stroke="currentColor" stroke-width="1.2"/><text x="480" y="857" text-anchor="middle" font-size="7.5">FSR</text>
+    <line x1="480" y1="868" x2="480" y2="880" stroke="currentColor" stroke-width="1.2"/><circle cx="480" cy="880" r="2.2" fill="currentColor"/>
+    <line x1="480" y1="880" x2="480" y2="892" stroke="currentColor" stroke-width="1.2"/>
+    <rect x="472" y="892" width="16" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/><text x="500" y="900" font-size="7.5">10 kΩ</text>
+    <line x1="480" y1="902" x2="480" y2="906" stroke="#4a4e57" stroke-width="1.4"/><polygon points="474,904 486,904 480,912" fill="currentColor"/>
+    <line x1="480" y1="880" x2="560" y2="880" stroke="#1f9d55" stroke-width="1.6"/><text x="566" y="884" fill="#1f9d55" font-size="7.5">→ GPIO35</text>
+    <text x="436" y="900" font-size="7" fill="#7b7f86">pressure ↓ FSR resistance ↑ node V</text>
+  </g>
+  <g font-size="9" fill="currentColor" transform="translate(0 -120)">
+    <rect x="770" y="792" width="410" height="118" rx="8" fill="#f7f6f2" stroke="#d7d3c8"/>
+    <text x="786" y="812" font-weight="700">C · MQ-3 heater switch, low-side → GPIO23</text>
+    <line x1="830" y1="824" x2="830" y2="838" stroke="#d0342c" stroke-width="1.4"/><text x="810" y="822" fill="#d0342c" font-size="7.5">3V3</text>
+    <rect x="808" y="838" width="44" height="22" rx="3" fill="#2f6fb0"/><text x="830" y="853" text-anchor="middle" font-size="7" fill="#fff">MQ-3</text>
+    <line x1="830" y1="860" x2="830" y2="878" stroke="currentColor" stroke-width="1.2"/>
+    <use href="#npn" x="830" y="878"/>
+    <text x="856" y="886" font-size="7.5">NPN 2N2222 / BC547</text>
+    <line x1="826" y1="900" x2="826" y2="906" stroke="#4a4e57" stroke-width="1.4"/><polygon points="820,904 832,904 826,912" fill="currentColor"/><text x="838" y="908" fill="#4a4e57" font-size="7.5">GND</text>
+    <line x1="920" y1="884" x2="836" y2="884" stroke="#e8933a" stroke-width="1.6"/>
+    <use href="#res" x="950" y="884"/>
+    <line x1="976" y1="884" x2="1030" y2="884" stroke="#e8933a" stroke-width="1.6"/><text x="980" y="878" font-size="7.5">1 kΩ</text>
+    <text x="1034" y="888" fill="#e8933a" font-size="7.5">GPIO23</text>
+    <text x="786" y="902" font-size="7" fill="#7b7f86">heater ~150 mA — never off a bare GPIO. AO read only while the heater is on.</text>
+  </g>
+
+  <text x="40" y="804" font-size="8" fill="#9a9da3">Exact-net schematic: wiring-diagram.svg . Never connect any of this to the motorcycle's wiring or ignition (03_RULES.md §1).</text>
+</svg>
