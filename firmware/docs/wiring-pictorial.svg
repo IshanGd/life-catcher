@@ -120,16 +120,16 @@
 
   <!-- ================= MPU6050 (right, → GPIO21/22) ================= -->
   <g>
-    <rect x="985" y="150" width="170" height="96" rx="6" fill="#6a3fa0" stroke="#4c2c74" stroke-width="1"/>
-    <rect x="1011" y="176" width="40" height="40" rx="3" fill="#1e1e22"/><rect x="1071" y="188" width="16" height="10" rx="2" fill="#c7cad0"/>
-    <text x="1070" y="140" font-size="10" fill="#4c2c74" font-weight="600" text-anchor="middle">GY-521 · MPU6050</text>
+    <rect x="1010" y="150" width="165" height="96" rx="6" fill="#6a3fa0" stroke="#4c2c74" stroke-width="1"/>
+    <rect x="1036" y="176" width="40" height="40" rx="3" fill="#1e1e22"/><rect x="1096" y="188" width="16" height="10" rx="2" fill="#c7cad0"/>
+    <text x="1092" y="140" font-size="10" fill="#4c2c74" font-weight="600" text-anchor="middle">GY-521 · MPU6050</text>
     <!-- header along the LEFT edge, facing the ESP32 -->
-    <rect x="979" y="158" width="12" height="80" fill="#0d0d10"/>
+    <rect x="1004" y="158" width="12" height="80" fill="#0d0d10"/>
     <g font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="8.5" fill="#3b3b3b" text-anchor="start">
-      <text x="996" y="169">VCC</text><text x="996" y="189">GND</text><text x="996" y="209">SCL</text><text x="996" y="229">SDA</text>
+      <text x="1021" y="169">VCC</text><text x="1021" y="189">GND</text><text x="1021" y="209">SCL</text><text x="1021" y="229">SDA</text>
     </g>
-    <g fill="#c8a24a"><circle cx="985" cy="166" r="3"/><circle cx="985" cy="186" r="3"/><circle cx="985" cy="206" r="3"/><circle cx="985" cy="226" r="3"/></g>
-    <text x="1070" y="262" font-size="8.5" fill="#7b7f86" text-anchor="middle">AD0 → GND sets I²C addr 0x68</text>
+    <g fill="#c8a24a"><circle cx="1010" cy="166" r="3"/><circle cx="1010" cy="186" r="3"/><circle cx="1010" cy="206" r="3"/><circle cx="1010" cy="226" r="3"/></g>
+    <text x="1092" y="262" font-size="8.5" fill="#7b7f86" text-anchor="middle">AD0 → GND sets I²C addr 0x68</text>
   </g>
 
   <!-- ================= WIRES ================= -->
@@ -154,19 +154,20 @@
   <!-- ESP32 GND (left) -> GND rail -->
   <path d="M744,515 C700,515 680,565 660,590" fill="none" stroke="#4a4e57" stroke-width="2.4" stroke-linecap="round"/>
 
-  <!-- RIGHT header: power + I2C + MQ3 heater -->
-  <path d="M886,275 C930,275 935,560 950,576" fill="none" stroke="#d0342c" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="M886,315 C918,315 920,550 935,590" fill="none" stroke="#4a4e57" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="M886,435 C920,435 945,232 979,226" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
-  <text x="898" y="430" font-size="8.5" fill="#2b7fff">GPIO21 → SDA</text>
-  <path d="M886,475 C930,475 955,212 979,206" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linecap="round"/>
-  <text x="898" y="470" font-size="8.5" fill="#2b7fff">GPIO22 → SCL</text>
-  <path d="M886,515 C950,515 985,610 1015,652" fill="none" stroke="#e8933a" stroke-width="2.6" stroke-linecap="round"/>
-  <text x="898" y="533" font-size="8.5" fill="#e8933a">GPIO23 → 1k → transistor base (inset C)</text>
+  <!-- RIGHT header: power + I2C + MQ3 heater — one x-lane per wire, orthogonal -->
+  <polyline points="890,275 901,275 901,576 924,576" fill="none" stroke="#d0342c" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="890,315 913,315 913,590 936,590" fill="none" stroke="#4a4e57" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="890,435 941,435 941,226 1004,226" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="946" y="420" font-size="8.5" fill="#2b7fff">GPIO21 → SDA</text>
+  <polyline points="890,475 955,475 955,206 1004,206" fill="none" stroke="#2b7fff" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="946" y="196" font-size="8.5" fill="#2b7fff">GPIO22 → SCL</text>
+  <polyline points="890,515 969,515 969,662" fill="none" stroke="#e8933a" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M969,662 C969,670 979,674 995,674" fill="none" stroke="#e8933a" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="892" y="533" font-size="8.5" fill="#e8933a">GPIO23 → 1 kΩ → transistor base ( inset C ↓ )</text>
 
-  <!-- MPU power to rails -->
-  <path d="M985,166 C968,166 966,555 958,576" fill="none" stroke="#d0342c" stroke-width="2" stroke-linecap="round"/>
-  <path d="M985,186 C975,186 974,560 966,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linecap="round"/>
+  <!-- MPU power to rails — lanes right of the I2C lanes -->
+  <polyline points="1010,166 983,166 983,576 1005,576" fill="none" stroke="#d0342c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="1010,186 993,186 993,590 1015,590" fill="none" stroke="#4a4e57" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 
   <!-- MQ-3 power -->
   <path d="M100,262 C80,320 90,540 110,576" fill="none" stroke="#d0342c" stroke-width="2" stroke-linecap="round"/>
