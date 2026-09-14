@@ -43,6 +43,49 @@ Phase 2 packaging task, not a wiring-diagram item.
 ignition. The helmet is electrically isolated from the vehicle by design
 (`03_RULES.md` §1, `01_REQUIREMENTS.md` §5).
 
+## Full pin netlist
+
+The table above names each sensor; this is every wire on the board,
+including the resistors, diodes, and the transistor between the ESP32 pin
+and the part. Part labels (R1, D1, Q1, ...) match the discrete-parts table
+right after it.
+
+| ESP32 pin | Connected to (full path) |
+|---|---|
+| `3V3` | MPU6050 `VCC` · Buzzer `VCC` · FSR leg 1 (→ FSR → node → `GPIO35`) · Piezo clamp: cathode of Schottky **D1** (clamps the `GPIO34` node high) |
+| `5V` / `VIN` | MQ-3 module `VCC` only — kept off the 3V3 rail deliberately, see "Alcohol pre-ride check" below |
+| `GND` | MPU6050 `GND` + `AD0` (address-select tied low) · panic button leg 2 · cancel button leg 2 · buzzer `GND` · piezo `(−)` lead · far end of **R1** (1 MΩ bleed) · anode of Schottky **D2** · far end of **R2** (10 kΩ, FSR divider) · heater-switch **Q1** emitter |
+| `GPIO2` | Onboard LED — nothing external wired |
+| `GPIO4` | MPU6050 `INT` (optional, firmware polls at 50 Hz regardless) |
+| `GPIO21` | MPU6050 `SDA` |
+| `GPIO22` | MPU6050 `SCL` |
+| `GPIO23` | **R3** (1 kΩ) → **Q1** base — heater-switch drive line |
+| `GPIO25` | Panic button leg 1 (leg 2 → GND) |
+| `GPIO26` | Cancel button leg 1 (leg 2 → GND) |
+| `GPIO27` | Buzzer `I/O` |
+| `GPIO32` | Battery divider node (optional) — see discrete-parts table |
+| `GPIO34` | Node shared by: piezo `(+)` lead · **R1** (1 MΩ, other end → GND) · **D1** anode · **D2** cathode |
+| `GPIO35` | Node shared by: FSR leg 2 · **R2** (10 kΩ, other end → GND) |
+| `GPIO36` | MQ-3 module `AO` (module's onboard load resistor, nothing external needed) |
+
+## Discrete parts (resistors, diodes, transistor)
+
+| Part | Value / model | Between | Purpose |
+|---|---|---|---|
+| R1 | 1 MΩ | `GPIO34` node ↔ GND | Piezo bleed — drains charge so the ADC reads a spike, not a stuck level |
+| D1 | BAT85 / 1N5819 (Schottky) | `GPIO34` node → 3V3 | Clamps positive piezo swings above ~3.5 V |
+| D2 | BAT85 / 1N5819 (Schottky) | GND → `GPIO34` node | Clamps negative piezo swings below ~−0.3 V |
+| R2 | 10 kΩ | `GPIO35` node ↔ GND | FSR voltage-divider partner |
+| R3 | 1 kΩ | `GPIO23` → Q1 base | Base current limiter for the heater switch |
+| Q1 | 2N2222 / BC547 (NPN) | collector → MQ-3 `GND` pin · emitter → true GND · base ← R3 | Low-side switch for the ~150 mA MQ-3 heater — `GPIO23` can't source that directly |
+| — | 4.7 kΩ ×2 (optional) | SDA/SCL ↔ 3V3 | Only if the MPU6050 breakout lacks onboard I²C pull-ups |
+| — | 330 Ω (optional) | `GPIO2` → external LED → GND | Only if swapping the onboard status LED for an external one |
+| — | 100 kΩ ×2 (optional) | VBAT → node → GND, node → `GPIO32` | Battery-sense divider (ratio 2.0) — see §3 in `BOM.md`, only needed once battery power is wired |
+
+Mandatory for this build: **R1, R2, R3, D1, D2, Q1** — 3 resistors, 2 diodes,
+1 transistor. The pull-up, LED, and battery-divider rows are conditional on
+hardware you may not have wired yet.
+
 ## ADC notes (ESP32)
 
 - Use **ADC1** pins (GPIO32–39) for piezo/FSR/battery — ADC2 is unavailable

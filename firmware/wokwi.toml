@@ -3,7 +3,12 @@
 #   2. open this folder with the Wokwi VS Code extension, or upload
 #      wokwi.toml + diagram.json to wokwi.com, and press play
 #
-# Wokwi simulates the ESP32, GPIO, I2C and the MPU6050. BLE is only partially
+# Wokwi simulates the ESP32, GPIO, I2C and the MPU6050. Piezo, FSR, and the
+# MQ-3 analog out are stand-in potentiometers (no real sensor-curve model) —
+# use this to check wiring + firmware logic, not sensor calibration. The
+# MQ-3 heater switch (R3 + Q1, per docs/WIRING.md) IS modelled — GPIO23
+# drives R3 -> Q1 base, Q1 low-side-switches an LED (heater-current stand-in)
+# the same way it would switch the real MQ-3 heater. BLE is only partially
 # modelled — use the desktop simulator (pio run -e sim) for the BLE contract.
 [wokwi]
 version = 1

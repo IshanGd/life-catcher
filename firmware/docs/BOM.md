@@ -21,7 +21,7 @@ if you wire differently, edit that file.
 | 1 | **ESP32 dev board** | ESP32-WROOM-32, 30-pin "DevKit v1" (CP2102 or CH340 USB) | 1 | 350–550 | Any ESP32-WROOM board works. 38-pin is fine too — pin numbers are the same GPIOs. |
 | 2 | **MPU6050 module** | GY-521 breakout (MPU-6050, I²C) | 1 | 80–160 | Has onboard 3V3 regulator + level shifting; runs off 5V or 3V3. |
 | 3 | **Piezo disc** | 27 mm piezo element with leads (buy a pack of 5) | 1 pack | 30–70 | The bare disc, *not* a buzzer module. Used as an impact sensor. |
-| 4 | **Force-sensing resistor (FSR)** | Interlink FSR 402 (round, ~12.7 mm) **or** RP-C18.3 thin-film clone | 1 | see below | **The cost-sensitive item — see §5.** |
+| 4 | **Force-sensing resistor (FSR)** | Interlink FSR 402 (round, ~12.7 mm) | 1 | see below | **The cost-sensitive item — see §5.** |
 | 5 | **Tactile push buttons** | 6×6 mm through-hole, momentary (pack of 10) | 1 pack | 25–50 | Need 2 (panic, cancel). |
 | 6 | **Buzzer** | 5 V **active** buzzer module (3-pin, has driver transistor) | 1 | 20–45 | Active module = drive straight from a GPIO. A bare passive element needs a transistor — see §4.6. |
 | 7 | **Breadboard** | 830-point (MB-102) | 1 | 70–130 | |
@@ -30,11 +30,10 @@ if you wire differently, edit that file.
 | 10 | **Schottky diodes** | BAT85 / 1N5819 (pack of 10) | 1 pack | 25–50 | Piezo input clamp (§4.3). 1N4148 works in a pinch but leaks more. |
 | 11 | **USB data cable** | micro-USB or USB-C to match your board | 1 | 0–100 | Often bundled with the board. Must be a **data** cable, not charge-only. |
 
-**Core subtotal (with RP-C18.3 clone FSR): ~₹800–1,250**
 **Core subtotal (with genuine FSR 402): ~₹1,150–1,800**
 
-Both land in / near the `01_REQUIREMENTS.md` §5 target of **₹860–1,370 for
-sensors + MCU** — the FSR is the swing factor (§5).
+Lands in / near the `01_REQUIREMENTS.md` §5 target of **₹860–1,370 for
+sensors + MCU** — see §5, the FSR sourcing note.
 
 ---
 
@@ -223,16 +222,20 @@ pull-ups), which is exactly what the dividers need.
 ## 5. Cost-target note (`03_RULES.md` §1)
 
 `01_REQUIREMENTS.md` §5 targets **₹860–1,370** for sensors + MCU. The FSR is
-the line item that can break it:
+the line item that swings it most, and sourcing reality (checked against
+local/Indian sellers, Sept 2026) is the **opposite** of what generic "clone
+is cheaper" pricing guides assume:
 
-- **Genuine Interlink FSR 402:** ~₹400–700 → total pushes to ₹1,150–1,800,
-  **over** the sensor+MCU target on its own.
-- **RP-C18.3 / DF9-40 thin-film clone:** ~₹150–300 → total ~₹800–1,250,
-  **within** target. Adequate for prototype wear-detection (it only needs to
-  say worn / not-worn, not measure force).
+- **Genuine Interlink FSR 402:** ~₹400–700 locally — the actually-available
+  budget option. Use this. Adequate for prototype wear-detection (it only
+  needs to say worn / not-worn, not measure force).
+- **RP-C18.3 / DF9-40 thin-film clone:** priced at ~₹2,000 from the sellers
+  actually checked — **not** the budget option here, despite being listed
+  that way in older sourcing guides. Skip it unless a cheaper local listing
+  turns up.
 - **Production path:** a bulk thin-film sensor or a simple sprung contact
-  switch under the padding is likely the real answer. Flagging now rather
-  than quietly speccing the ₹700 part.
+  switch under the padding is likely the real answer at volume — revisit
+  once past prototype.
 
 Everything else here is comfortably cheap; the ESP32 + MPU6050 + piezo +
 buttons + buzzer is ~₹500–800 combined.

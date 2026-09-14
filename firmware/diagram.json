@@ -13,13 +13,25 @@
     { "type": "wokwi-potentiometer", "id": "piezo", "top": -40, "left": -180,
       "attrs": { "label": "PIEZO (impact)" } },
     { "type": "wokwi-potentiometer", "id": "fsr", "top": 120, "left": -180,
-      "attrs": { "label": "FSR (wear)" } }
+      "attrs": { "label": "FSR (wear)" } },
+    { "type": "wokwi-potentiometer", "id": "mq3", "top": -40, "left": 330,
+      "attrs": { "label": "MQ-3 AO (stand-in)" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 210, "left": 300,
+      "attrs": { "value": "1000" } },
+    { "type": "wokwi-transistor", "id": "q1", "top": 210, "left": 370,
+      "attrs": { "type": "NPN" } },
+    { "type": "wokwi-resistor", "id": "heater_led_r", "top": 150, "left": 370,
+      "attrs": { "value": "330" } },
+    { "type": "wokwi-led", "id": "heater_led", "top": 150, "left": 430,
+      "attrs": { "color": "red", "label": "heater ON (GPIO23, via Q1)" } }
   ],
   "connections": [
     [ "esp:3V3", "imu:VCC", "red", [] ],
     [ "esp:GND.1", "imu:GND", "black", [] ],
     [ "esp:21", "imu:SDA", "blue", [] ],
     [ "esp:22", "imu:SCL", "yellow", [] ],
+    [ "esp:4", "imu:INT", "gray", [] ],
+    [ "esp:GND.1", "imu:AD0", "black", [] ],
 
     [ "esp:3V3", "piezo:VCC", "red", [] ],
     [ "esp:GND.1", "piezo:GND", "black", [] ],
@@ -35,7 +47,18 @@
     [ "cancel:2.l", "esp:GND.1", "black", [] ],
 
     [ "esp:27", "bz:1", "orange", [] ],
-    [ "bz:2", "esp:GND.1", "black", [] ]
+    [ "bz:2", "esp:GND.1", "black", [] ],
+
+    [ "esp:3V3", "mq3:VCC", "red", [] ],
+    [ "esp:GND.1", "mq3:GND", "black", [] ],
+    [ "esp:36", "mq3:SIG", "green", [] ],
+
+    [ "esp:23", "r3:1", "orange", [] ],
+    [ "r3:2", "q1:B", "orange", [] ],
+    [ "esp:3V3", "heater_led_r:1", "red", [] ],
+    [ "heater_led_r:2", "heater_led:A", "red", [] ],
+    [ "heater_led:C", "q1:C", "orange", [] ],
+    [ "q1:E", "esp:GND.1", "black", [] ]
   ],
   "dependencies": {}
 }
