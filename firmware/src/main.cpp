@@ -184,6 +184,19 @@ void loop() {
   // --- sensor updates ------------------------------------------------
   g_piezo.Update(now);
   g_fsr.Update();
+  {
+    static bool s_fsr_worn_prev = false;
+    static uint32_t s_fsr_last_print_ms = 0;
+    bool worn = g_fsr.Worn();
+    if (worn != s_fsr_worn_prev) {
+      Serial.printf("[FSR] helmet_worn=%s (raw=%d)\n", worn ? "true" : "false", g_fsr.raw());
+      s_fsr_worn_prev = worn;
+    }
+    if ((now - s_fsr_last_print_ms) >= 500) {  // TEMP bring-up trace, remove once FSR is confirmed
+      s_fsr_last_print_ms = now;
+      Serial.printf("[FSR] raw=%d worn=%s\n", g_fsr.raw(), worn ? "true" : "false");
+    }
+  }
   UpdateMq3(now);
 
   core::ImuSample s;

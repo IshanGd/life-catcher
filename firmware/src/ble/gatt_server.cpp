@@ -77,6 +77,9 @@ void GattServer::PublishEvent(const helmet::schema::EventPayload& e) {
   if (!g_event) return;
   std::string j = helmet::schema::Serialize(e);
   g_event->setValue(reinterpret_cast<const uint8_t*>(j.data()), j.size());
+  Serial.printf("[BLE] PublishEvent: %d bytes, connected=%d, readback=%d bytes, subscribed=%d\n",
+                (int)j.size(), (int)connected_, (int)g_event->getValue().size(),
+                (int)g_event->getSubscribedCount());
   if (connected_) g_event->notify();
 }
 

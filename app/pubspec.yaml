@@ -40,6 +40,12 @@ dependencies:
   # WeeklyTrendChart / FleetTrendChart (05_DESIGN.md §4).
   fl_chart: ^0.69.0
 
+  # BleHelmetDataService (app/lib/services/ble_helmet_data_service.dart) —
+  # the real Phase 4 data source, talking to firmware/src/ble/gatt_server.cpp.
+  flutter_blue_plus: ^2.3.12
+  # Local persistence for the driver profile + event log (same file).
+  shared_preferences: ^2.5.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
